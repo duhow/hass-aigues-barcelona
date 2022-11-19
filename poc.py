@@ -17,8 +17,10 @@ class AiguesAPI:
     def __init__(self):
         self.cli = requests.Session()
         self.api_host = "https://api.aiguesdebarcelona.cat"
+        # https://www.aiguesdebarcelona.cat/o/ofex-theme/js/chunk-vendors.e5935b72.js
+        # https://www.aiguesdebarcelona.cat/o/ofex-theme/js/app.0499d168.js
         self.headers = {
-            "Ocp-Apim-Subscription-Key": "6a98b8b8c7b243cda682a43f09e6588b;product=portlet-login-ofex",
+            "Ocp-Apim-Subscription-Key": "3cca6060fee14bffa3450b19941bd954",
             "Ocp-Apim-Trace": "false",
         }
 
@@ -42,7 +44,7 @@ class AiguesAPI:
     def _query(self, path, query=None, json=None, headers=None, method="GET"):
         if headers is None:
             headers = dict()
-        headers = {**headers, **self.headers}
+        headers = {**self.headers, **headers}
         r = self.cli.request(
             method=method,
             url=self._generate_url(path, query),
@@ -79,7 +81,10 @@ class AiguesAPI:
             "userIdentification": user,
             "password": password
         }
-        headers = {"Content-Type": "application/json"}
+        headers = {
+            "Content-Type": "application/json",
+            "Ocp-Apim-Subscription-Key": "6a98b8b8c7b243cda682a43f09e6588b;product=portlet-login-ofex",
+        }
 
         r = self._query(path, query, body, headers, method="POST")
 
@@ -101,13 +106,37 @@ class AiguesAPI:
             "userId": user,
             "clientId": user
         }
+        headers = {
+            "Ocp-Apim-Subscription-Key": "6a98b8b8c7b243cda682a43f09e6588b;product=portlet-login-ofex"
+        }
 
-        r = self._query(path, query, method="POST")
+        r = self._query(path, query, headers=headers, method="POST")
 
         assert r.json().get("user_data"), "User data missing"
         return r.json()
 
+    def contracts(self, user=None, status=["ASSIGNED", "PENDING"]):
+        if user is None:
+            user = self._return_token_field("name")
+        if isinstance(status, str):
+            status = [status]
+
+        path = "/ofex-contracts-api/contracts"
+        query = {
+            "lang": "ca",
+            "userId": user,
+            "clientId": user
+        }
+        for idx, stat in enumerate(status):
+            query[f"assignationStatus[{str(idx)}]"] = stat.upper()
+
+        r = self._query(path, query)
+
+        data = r.json().get("data")
+        return data
+    
+
 
 casa = AiguesAPI()
 casa.login(user, password)
-casa.profile()
+casa.contracts()
