@@ -4,6 +4,7 @@ import os
 import logging
 import base64
 import json
+import datetime
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -139,13 +140,17 @@ class AiguesAPI:
     def contract_id(self):
         return [x["contractDetail"]["contractNumber"] for x in self.contracts()]
 
+    @property
+    def first_contract(self):
+        contract_ids = self.contract_id
+        assert len(contract_ids) == 1, "Provide a Contract ID to retrieve specific invoices"
+        return contract_ids[0]
+
     def invoices(self, contract=None, user=None, last_months=36, mode="ALL"):
         if user is None:
             user = self._return_token_field("name")
         if contract is None:
-            contract_ids = self.contract_id
-            assert len(contract_ids) == 1, "Provide a Contract ID to retrieve specific invoices"
-            contract = contract_ids[0]
+            contract = self.first_contract
 
         path = "/ofex-invoices-api/invoices"
         query = {
@@ -165,9 +170,55 @@ class AiguesAPI:
     def invoices_debt(self, contract=None, user=None):
         return self.invoices(contract, user, last_months=0, mode="DEBT")
 
+    def consumptions(self, date_from, date_to=None, contract=None, user=None, frequency="HOURLY"):
+        if user is None:
+            user = self._return_token_field("name")
+        if contract is None:
+            contract = self.first_contract
+        if frequency not in ["HOURLY", "DAILY"]:
+            raise ValueError(f"Invalid {frequency=}")
 
+        if isinstance(date_from, datetime.date):
+            date_from = date_from.strftime("%d-%m-%Y")
+        if date_to is None:
+            date_to = date_from + datetime.timedelta(days=1)
+        if isinstance(date_to, datetime.date):
+            date_to = date_to.strftime("%d-%m-%Y")
 
+        path = "/ofex-water-consumptions-api/meter/consumptions"
+        query = {
+            "consumptionFrequency": frequency,
+            "contractNumber": contract,
+            "clientId": user,
+            "userId": user,
+            "lang": "ca",
+            "fromDate": date_from,
+            "toDate": date_to,
+            "showNegativeValues": "false"
+        }
+
+        r = self._query(path, query)
+
+        data = r.json().get("data")
+        return data
+
+    def consumptions_week(self, date_from: datetime.date, contract=None, user=None):
+        if date_from is None:
+            date_from = datetime.datetime.now()
+        # get first day of week
+        monday = date_from - datetime.timedelta(days=date_from.weekday())
+        sunday = monday + datetime.timedelta(days=6)
+        return self.consumptions(monday, sunday, contract, user, frequency="DAILY")
+
+    def consumptions_month(self, date_from: datetime.date, contract=None, user=None):
+        first = date_from.replace(day=1)
+        next_month = date_from.replace(day=28) + datetime.timedelta(days=4)
+        last = next_month - datetime.timedelta(days=next_month.day)
+        return self.consumptions(first, last, contract, user, frequency="DAILY")
+
+    def parse_consumptions(self, info, key="accumulatedConsumption"):
+        return [x[key] for x in info]
 
 casa = AiguesAPI()
 casa.login(user, password)
-print(casa.invoices())
+print(casa.parse_consumptions(casa.consumptions_week(datetime.date(2022, 11, 19))))
