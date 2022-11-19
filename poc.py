@@ -134,9 +134,40 @@ class AiguesAPI:
 
         data = r.json().get("data")
         return data
-    
+
+    @property
+    def contract_id(self):
+        return [x["contractDetail"]["contractNumber"] for x in self.contracts()]
+
+    def invoices(self, contract=None, user=None, last_months=36, mode="ALL"):
+        if user is None:
+            user = self._return_token_field("name")
+        if contract is None:
+            contract_ids = self.contract_id
+            assert len(contract_ids) == 1, "Provide a Contract ID to retrieve specific invoices"
+            contract = contract_ids[0]
+
+        path = "/ofex-invoices-api/invoices"
+        query = {
+            "contractNumber": contract,
+            "userId": user,
+            "clientId": user,
+            "lang": "ca",
+            "lastMonths": last_months,
+            "mode": mode
+        }
+
+        r = self._query(path, query)
+
+        data = r.json().get("data")
+        return data
+
+    def invoices_debt(self, contract=None, user=None):
+        return self.invoices(contract, user, last_months=0, mode="DEBT")
+
+
 
 
 casa = AiguesAPI()
 casa.login(user, password)
-casa.contracts()
+print(casa.invoices())
