@@ -1,0 +1,11 @@
+{
+  "name": "Aigües de Barcelona",
+  "render_readme": true,
+  "country": "ES",
+  "domains": [
+    "sensor"
+  ],
+  "homeassistant": "2021.11.0",
+  "content_in_root": false,
+  "zip_release": false
+}
