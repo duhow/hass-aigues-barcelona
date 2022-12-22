@@ -1,4 +1,4 @@
-"""Constants definition"""
+""" Constants definition """
 from datetime import timedelta
 
 DOMAIN = "aigues_barcelona"

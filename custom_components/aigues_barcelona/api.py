@@ -4,6 +4,7 @@ import socket
 
 import aiohttp
 import async_timeout
+import datetime
 
 TIMEOUT = 25
 
@@ -57,7 +58,7 @@ class AiguesApiClient:
                 if len(msg) > 5:
                     msg = resp.json().get("message", r.text)
                 raise Exception(f"Not found: {msg}")
-            if resp.status = 401:
+            if resp.status == 401:
                 msg = resp.text()
                 if len(msg) > 5:
                     msg = resp.json().get("message", r.text)
@@ -66,7 +67,7 @@ class AiguesApiClient:
 
     def login(self, user=None, password=None, recaptcha=None):
         if user is None:
-            user = self.
+            user = self._username
         # recaptcha seems to not be validated?
         if recaptcha is None:
             recaptcha = ""

@@ -5,11 +5,9 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant import config_entries
+from homeassistant import config_entries, core, exceptions
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 
@@ -55,15 +53,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         errors = {}
 
         try:
-            info = await validate_input(self.hass, user_input)
+            info = await _test_login_user(self.hass, user_input)
         except AlreadyConfigured:
             errors["base"] = "already_configured"
         else:
-            await self.async_set_unique_id(user_input[const.CONF_CUPS])
-            self._abort_if_unique_id_configured()
-            extra_data = {"scups": user_input[const.CONF_CUPS][-4:]}
+            #await self.async_set_unique_id(user_input[const.CONF_CUPS])
+            #self._abort_if_unique_id_configured()
+            #extra_data = {"scups": user_input[const.CONF_CUPS][-4:]}
             return self.async_create_entry(
-                title=info["title"], data={**user_input, **extra_data}
+                title="test aigua", data={**user_input}
             )
 
         return self.async_show_form(
@@ -77,3 +75,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         scups = import_data[const.CONF_CUPS][-4:]
         extra_data = {"scups": scups}
         return self.async_create_entry(title=scups, data={**import_data, **extra_data})
+
+class AlreadyConfigured(exceptions.HomeAssistantError):
+    """Error to indicate integration is already configured."""
