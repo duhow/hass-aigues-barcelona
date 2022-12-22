@@ -16,7 +16,10 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    CONF_CONTRACT
+)
 from .api import AiguesApiClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,7 +52,7 @@ async def validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> dic
         if len(contracts) > 1:
             raise NotImplementedError("Multiple contracts are not supported")
         # FIXME calling function instead of property due to async incompatibility
-        return {"contract": contracts[0]["contractDetail"]["contractNumber"]}
+        return {CONF_CONTRACT: contracts[0]["contractDetail"]["contractNumber"]}
 
     except Exception:
         return False
@@ -75,7 +78,7 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.debug(f"Result is {info}")
             if not info:
                 raise InvalidAuth
-            contract = info["contract"]
+            contract = info[CONF_CONTRACT]
 
             await self.async_set_unique_id(contract.lower())
             self._abort_if_unique_id_configured()
