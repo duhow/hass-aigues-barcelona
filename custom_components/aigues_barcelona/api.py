@@ -1,5 +1,7 @@
 import logging
 import requests
+import base64
+import json
 
 import datetime
 
@@ -37,7 +39,7 @@ class AiguesApiClient:
             return False
 
         data = token.split(".")[1]
-        logging.debug(data)
+        _LOGGER.debug(data)
         # add padding to avoid failures
         data = base64.urlsafe_b64decode(data + '==')
 
@@ -55,23 +57,27 @@ class AiguesApiClient:
             headers=headers,
             timeout=TIMEOUT
         )
-        _LOGGER.debug(f"Query done with code {resp.status}")
+        _LOGGER.debug(f"Query done with code {resp.status_code}")
         msg = resp.text
-        if len(msg) > 5:
-            msg = resp.json().get("message", r.text)
+        if len(msg) > 5 and msg.startswith("{"):
+            msg = resp.json().get("message", resp.text)
 
-        if resp.status == 500:
+        if resp.status_code == 500:
             raise Exception(f"Server error: {msg}")
-        if resp.status == 404:
+        if resp.status_code == 404:
             raise Exception(f"Not found: {msg}")
-        if resp.status == 401:
+        if resp.status_code == 401:
             raise Exception(f"Denied: {msg}")
+        if resp.status_code == 400:
+            raise Exception(f"Bad response: {msg}")
 
         return resp
 
     def login(self, user=None, password=None, recaptcha=None):
         if user is None:
             user = self._username
+        if password is None:
+            password = self._password
         # recaptcha seems to not be validated?
         if recaptcha is None:
             recaptcha = ""
@@ -94,6 +100,7 @@ class AiguesApiClient:
 
         r = self._query(path, query, body, headers, method="POST")
 
+        _LOGGER.debug(r)
         error = r.json().get("errorMessage", None)
         if error:
             _LOGGER.warning(error)

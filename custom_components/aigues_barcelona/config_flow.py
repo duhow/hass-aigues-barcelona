@@ -43,11 +43,13 @@ async def validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> dic
         login = await hass.async_add_executor_job(api.login)
         if not login:
             raise InvalidAuth
-        contracts = api.contract_id
+        _LOGGER.info("Login succeeded!")
+        contracts = await hass.async_add_executor_job(api.contracts, username)
 
         if len(contracts) > 1:
             raise NotImplementedError("Multiple contracts are not supported")
-        return {"contract": contracts[0]}
+        # FIXME calling function instead of property due to async incompatibility
+        return {"contract": contracts[0]["contractDetail"]["contractNumber"]}
 
     except Exception:
         return False
