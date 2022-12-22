@@ -1,17 +1,16 @@
-import asyncio
 import logging
-import socket
+import requests
 
-import aiohttp
-import async_timeout
 import datetime
 
-TIMEOUT = 25
+TIMEOUT = 60
 
-_LOGGER: logging.Logger = logging.getLogger(__package__)
+_LOGGER: logging.Logger = logging.getLogger(__name__)
 
 class AiguesApiClient:
-    def __init__(self, session: aiohttp.ClientSession, username, password, contract=None):
+    def __init__(self, username, password, contract=None, session: requests.Session = None):
+        if session is None:
+            session = requests.Session()
         self.cli = session
         self.api_host = "https://api.aiguesdebarcelona.cat"
         # https://www.aiguesdebarcelona.cat/o/ofex-theme/js/chunk-vendors.e5935b72.js
@@ -33,7 +32,9 @@ class AiguesApiClient:
 
     def _return_token_field(self, key):
         token = self.cli.cookies.get_dict().get("ofexTokenJwt")
-        assert token, "Token login missing"
+        if not token:
+            _LOGGER.warning("Token login missing")
+            return False
 
         data = token.split(".")[1]
         logging.debug(data)
@@ -42,28 +43,31 @@ class AiguesApiClient:
 
         return json.loads(data).get(key)
 
-    async def _query(self, path, query=None, json=None, headers=None, method="GET"):
+    def _query(self, path, query=None, json=None, headers=None, method="GET"):
         if headers is None:
             headers = dict()
         headers = {**self.headers, **headers}
 
-        async with self.cli.request(
+        resp = self.cli.request(
             method=method,
             url=self._generate_url(path, query),
             json=json,
-            headers=headers
-        ) as resp:
-            if resp.status == 404:
-                msg = resp.text()
-                if len(msg) > 5:
-                    msg = resp.json().get("message", r.text)
-                raise Exception(f"Not found: {msg}")
-            if resp.status == 401:
-                msg = resp.text()
-                if len(msg) > 5:
-                    msg = resp.json().get("message", r.text)
-                raise Exception(f"Denied: {msg}")
-            return await resp
+            headers=headers,
+            timeout=TIMEOUT
+        )
+        _LOGGER.debug(f"Query done with code {resp.status}")
+        msg = resp.text
+        if len(msg) > 5:
+            msg = resp.json().get("message", r.text)
+
+        if resp.status == 500:
+            raise Exception(f"Server error: {msg}")
+        if resp.status == 404:
+            raise Exception(f"Not found: {msg}")
+        if resp.status == 401:
+            raise Exception(f"Denied: {msg}")
+
+        return resp
 
     def login(self, user=None, password=None, recaptcha=None):
         if user is None:
@@ -90,10 +94,17 @@ class AiguesApiClient:
 
         r = self._query(path, query, body, headers, method="POST")
 
-        assert not r.json().get("errorMessage"), r.json().get("errorMessage")
-        #{"errorMessage":"Los datos son incorrectos","result":false,"errorCode":"LOGIN_ERROR"}
-        access_token = r.json().get("access_token")
-        assert access_token, "Access token missing"
+        error = r.json().get("errorMessage", None)
+        if error:
+            _LOGGER.warning(error)
+            return False
+
+        access_token = r.json().get("access_token", None)
+        if not access_token:
+            _LOGGER.warning("Access token missing")
+            return False
+
+        return True
 
         # set as cookie: ofexTokenJwt
         # https://www.aiguesdebarcelona.cat/ca/area-clientes

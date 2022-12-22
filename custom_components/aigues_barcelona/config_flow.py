@@ -5,76 +5,102 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant import config_entries, core, exceptions
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant import config_entries, core
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL
+)
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
+import homeassistant.helpers.config_validation as cv
 
-
-from . import const
+from .const import DOMAIN
 from .api import AiguesApiClient
 
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_DATA_SCHEMA = vol.Schema(
+ACCOUNT_CONFIG_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
+        vol.Required(CONF_USERNAME): cv.string,
+        vol.Required(CONF_PASSWORD): cv.string,
+        #vol.Optional(CONF_SCAN_INTERVAL, default=const.DEFAULT_SCAN_PERIOD): cv.time_period_seconds
     }
 )
 
+async def validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+    username = data[CONF_USERNAME]
+    password = data[CONF_PASSWORD]
 
-async def _test_login_user(hass: HomeAssistant, user_input: dict[str, Any]) -> dict[str, Any]:
-    """Return true if credentials are valid"""
+    # QUICK check DNI/NIF. TODO improve
+    if len(username) != 9 or not username[0:8].isnumeric():
+        raise InvalidUsername
+
     try:
-        session = async_create_clientsession(hass)
-        client = AiguesApiClient(session, username, password)
-        await client.login()
-        return True
+        api = AiguesApiClient(username, password)
+        _LOGGER.info("Attempting to login")
+        login = await hass.async_add_executor_job(api.login)
+        if not login:
+            raise InvalidAuth
+        contracts = api.contract_id
+
+        if len(contracts) > 1:
+            raise NotImplementedError("Multiple contracts are not supported")
+        return {"contract": contracts[0]}
+
     except Exception:
-        pass
-    return False
+        return False
 
-
-class ConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
-    """Handle a config flow."""
+class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
     async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step."""
+        """Handle configuration step from UI."""
         if user_input is None:
             return self.async_show_form(
-                step_id="user", data_schema=STEP_USER_DATA_SCHEMA
+                step_id="user", data_schema=ACCOUNT_CONFIG_SCHEMA
             )
 
         errors = {}
 
         try:
-            info = await _test_login_user(self.hass, user_input)
+            info = await validate_credentials(self.hass, user_input)
+            _LOGGER.debug(f"Result is {info}")
+            if not info:
+                raise InvalidAuth
+            contract = info["contract"]
+
+            await self.async_set_unique_id(contract.lower())
+            self._abort_if_unique_id_configured()
+        except NotImplementedError:
+            errors["base"] = "not_implemented"
+        except InvalidUsername:
+            errors["base"] = "invalid_auth"
+        except InvalidAuth:
+            errors["base"] = "invalid_auth"
         except AlreadyConfigured:
             errors["base"] = "already_configured"
         else:
-            #await self.async_set_unique_id(user_input[const.CONF_CUPS])
-            #self._abort_if_unique_id_configured()
-            #extra_data = {"scups": user_input[const.CONF_CUPS][-4:]}
+            _LOGGER.debug(f"Creating entity with {user_input} and {contract=}")
+
             return self.async_create_entry(
-                title="test aigua", data={**user_input}
+                title=f"Aigua {contract}", data={**user_input, **info}
             )
 
         return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="user", data_schema=ACCOUNT_CONFIG_SCHEMA, errors=errors
         )
 
-    async def async_step_import(self, import_data: dict[str, Any]) -> FlowResult:
-        """Import data from yaml config"""
-        await self.async_set_unique_id(import_data[const.CONF_CUPS])
-        self._abort_if_unique_id_configured()
-        scups = import_data[const.CONF_CUPS][-4:]
-        extra_data = {"scups": scups}
-        return self.async_create_entry(title=scups, data={**import_data, **extra_data})
-
-class AlreadyConfigured(exceptions.HomeAssistantError):
+class AlreadyConfigured(HomeAssistantError):
     """Error to indicate integration is already configured."""
+
+class InvalidAuth(HomeAssistantError):
+    """Error to indicate credentials are invalid"""
+
+class InvalidUsername(HomeAssistantError):
+    """Error to indicate invalid username"""

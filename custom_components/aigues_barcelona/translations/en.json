@@ -1,0 +1,21 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Abort: Account is already configured",
+      "invalid_auth": "Invalid credentials"
+    },
+    "error": {
+      "already_configured": "Error: Account is already configured",
+      "invalid_auth": "Invalid credentials"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "username": "Username (DNI)",
+          "password": "Password"
+        },
+        "title": "Setup integration"
+      }
+    }
+  }
+}

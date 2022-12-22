@@ -3,25 +3,36 @@
 
 from homeassistant.core import HomeAssistant
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.const.UnitOfVolume import CUBIC_METERS
+from homeassistant.const import UnitOfVolume
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from . import DOMAIN
 
-
-def setup_platform(
+async def async_setup_platform(
     hass: HomeAssistant,
     config: ConfigType,
     add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None
 ) -> None:
     """Set up the sensor platform."""
-    # We only want this platform to be set up via discovery.
-    if discovery_info is None:
-        return
-    add_entities([ContadorAgua()])
 
+    username = config[CONF_USERNAME]
+    password = config[CONF_PASSWORD]
+    contract = config["contract"]
+    try:
+        client = AiguesApiClient(username, password, contract=contract)
+
+        login = await hass.async_add_executor_job(client.login)
+        if not login:
+            _LOGGER.warning("Wrong username and/or password")
+            return
+
+    except Exception:
+        _LOGGER.warning("Unable to create Aigues Barcelona Client")
+        return
+
+    async_add_entities([ContadorAgua(client)])
 
 class ContadorAgua(SensorEntity):
     """Representation of a sensor."""
@@ -43,7 +54,7 @@ class ContadorAgua(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return CUBIC_METERS
+        return UnitOfVolume.CUBIC_METERS
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
