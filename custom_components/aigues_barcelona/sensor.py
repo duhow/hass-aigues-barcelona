@@ -1,38 +1,34 @@
 """Platform for sensor integration."""
-#from __future__ import annotations
+# from __future__ import annotations
+import logging
+from datetime import datetime
+from datetime import timedelta
 
-from homeassistant.core import HomeAssistant, CoreState, callback
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.const import (
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_STATE,
-    EVENT_HOMEASSISTANT_START,
-    UnitOfVolume,
-)
+from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.const import CONF_PASSWORD
+from homeassistant.const import CONF_STATE
+from homeassistant.const import CONF_USERNAME
+from homeassistant.const import EVENT_HOMEASSISTANT_START
+from homeassistant.const import UnitOfVolume
+from homeassistant.core import callback
+from homeassistant.core import CoreState
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, CoordinatorEntity
-
-from .const import (
-    DOMAIN,
-    CONF_CONTRACT,
-)
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.typing import DiscoveryInfoType
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .api import AiguesApiClient
-
-from datetime import timedelta
-from datetime import datetime
-import logging
+from .const import CONF_CONTRACT
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry,
-    async_add_entities
-):
+
+async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities):
     """Set up entry."""
     hass.data.setdefault(DOMAIN, {})
 
@@ -44,13 +40,7 @@ async def async_setup_entry(
 
     platform = entity_platform.async_get_current_platform()
 
-    coordinator = ContratoAgua(
-        hass,
-        username,
-        password,
-        contract,
-        prev_data=None
-    )
+    coordinator = ContratoAgua(hass, username, password, contract, prev_data=None)
 
     # postpone first refresh to speed up startup
     @callback
@@ -68,6 +58,7 @@ async def async_setup_entry(
     async_add_entities([ContadorAgua(coordinator)])
 
     return True
+
 
 class ContratoAgua(DataUpdateCoordinator):
     def __init__(
@@ -92,11 +83,7 @@ class ContratoAgua(DataUpdateCoordinator):
         self._data = hass.data[DOMAIN][self.contract]
 
         # the api object
-        self._api = AiguesApiClient(
-            username,
-            password,
-            contract
-        )
+        self._api = AiguesApiClient(username, password, contract)
 
         super().__init__(
             hass,
@@ -117,7 +104,9 @@ class ContratoAgua(DataUpdateCoordinator):
 
         try:
             await self.hass.async_add_executor_job(self._api.login)
-            consumptions = await self.hass.async_add_executor_job(self._api.consumptions, TODAY)
+            consumptions = await self.hass.async_add_executor_job(
+                self._api.consumptions, TODAY
+            )
         except Exception as msg:
             _LOGGER.error("error while getting data: %s", msg)
 
@@ -134,6 +123,7 @@ class ContratoAgua(DataUpdateCoordinator):
 
         return True
 
+
 class ContadorAgua(CoordinatorEntity, SensorEntity):
     """Representation of a sensor."""
 
@@ -146,7 +136,7 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
         self._attr_icon = "mdi:water-pump"
         self._attr_has_entity_name = True
         self._attr_should_poll = False
-        #self._attr_state = None
+        # self._attr_state = None
         self._attr_device_class = SensorDeviceClass.WATER
         self._attr_native_unit_of_measurement = UnitOfVolume.CUBIC_METERS
         self._attr_state_class = "total"

@@ -1,9 +1,10 @@
+---
 name: Test
 
 on:
   push:
     branches:
-      - master
+    - master
   pull_request:
 
 jobs:
@@ -12,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Test HACS Action  
+    - name: Test HACS Action
       uses: hacs/action@22.5.0
       with:
         category: integration

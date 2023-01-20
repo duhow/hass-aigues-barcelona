@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-import requests
-import os
-import logging
 import base64
-import json
 import datetime
+import json
+import logging
+import os
+
+import requests
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -13,6 +14,7 @@ password = os.getenv("AIGUA_PASSWORD")
 
 if all([not password, not user]):
     raise ValueError("Missing credentials")
+
 
 class AiguesAPI:
     def __init__(self):
@@ -38,7 +40,7 @@ class AiguesAPI:
         data = token.split(".")[1]
         logging.debug(data)
         # add padding to avoid failures
-        data = base64.urlsafe_b64decode(data + '==')
+        data = base64.urlsafe_b64decode(data + "==")
 
         return json.loads(data).get(key)
 
@@ -50,7 +52,7 @@ class AiguesAPI:
             method=method,
             url=self._generate_url(path, query),
             json=json,
-            headers=headers
+            headers=headers,
         )
         logging.debug(r.text)
         logging.debug(r.status_code)
@@ -72,15 +74,12 @@ class AiguesAPI:
             recaptcha = ""
 
         path = "/ofex-login-api/auth/getToken"
-        query = {
-            "lang": "ca",
-            "recaptchaClientResponse": recaptcha
-        }
+        query = {"lang": "ca", "recaptchaClientResponse": recaptcha}
         body = {
             "scope": "ofex",
             "companyIdentification": "",
             "userIdentification": user,
-            "password": password
+            "password": password,
         }
         headers = {
             "Content-Type": "application/json",
@@ -90,7 +89,7 @@ class AiguesAPI:
         r = self._query(path, query, body, headers, method="POST")
 
         assert not r.json().get("errorMessage"), r.json().get("errorMessage")
-        #{"errorMessage":"Los datos son incorrectos","result":false,"errorCode":"LOGIN_ERROR"}
+        # {"errorMessage":"Los datos son incorrectos","result":false,"errorCode":"LOGIN_ERROR"}
         access_token = r.json().get("access_token")
         assert access_token, "Access token missing"
 
@@ -102,11 +101,7 @@ class AiguesAPI:
             user = self._return_token_field("name")
 
         path = "/ofex-login-api/auth/getProfile"
-        query = {
-            "lang": "ca",
-            "userId": user,
-            "clientId": user
-        }
+        query = {"lang": "ca", "userId": user, "clientId": user}
         headers = {
             "Ocp-Apim-Subscription-Key": "6a98b8b8c7b243cda682a43f09e6588b;product=portlet-login-ofex"
         }
@@ -123,11 +118,7 @@ class AiguesAPI:
             status = [status]
 
         path = "/ofex-contracts-api/contracts"
-        query = {
-            "lang": "ca",
-            "userId": user,
-            "clientId": user
-        }
+        query = {"lang": "ca", "userId": user, "clientId": user}
         for idx, stat in enumerate(status):
             query[f"assignationStatus[{str(idx)}]"] = stat.upper()
 
@@ -143,7 +134,9 @@ class AiguesAPI:
     @property
     def first_contract(self):
         contract_ids = self.contract_id
-        assert len(contract_ids) == 1, "Provide a Contract ID to retrieve specific invoices"
+        assert (
+            len(contract_ids) == 1
+        ), "Provide a Contract ID to retrieve specific invoices"
         return contract_ids[0]
 
     def invoices(self, contract=None, user=None, last_months=36, mode="ALL"):
@@ -159,7 +152,7 @@ class AiguesAPI:
             "clientId": user,
             "lang": "ca",
             "lastMonths": last_months,
-            "mode": mode
+            "mode": mode,
         }
 
         r = self._query(path, query)
@@ -170,7 +163,9 @@ class AiguesAPI:
     def invoices_debt(self, contract=None, user=None):
         return self.invoices(contract, user, last_months=0, mode="DEBT")
 
-    def consumptions(self, date_from, date_to=None, contract=None, user=None, frequency="HOURLY"):
+    def consumptions(
+        self, date_from, date_to=None, contract=None, user=None, frequency="HOURLY"
+    ):
         if user is None:
             user = self._return_token_field("name")
         if contract is None:
@@ -194,7 +189,7 @@ class AiguesAPI:
             "lang": "ca",
             "fromDate": date_from,
             "toDate": date_to,
-            "showNegativeValues": "false"
+            "showNegativeValues": "false",
         }
 
         r = self._query(path, query)
@@ -218,6 +213,7 @@ class AiguesAPI:
 
     def parse_consumptions(self, info, key="accumulatedConsumption"):
         return [x[key] for x in info]
+
 
 casa = AiguesAPI()
 casa.login(user, password)

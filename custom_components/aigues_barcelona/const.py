@@ -1,4 +1,4 @@
-""" Constants definition """
+"""Constants definition."""
 
 DOMAIN = "aigues_barcelona"
 
