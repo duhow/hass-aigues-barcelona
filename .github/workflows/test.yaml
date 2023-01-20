@@ -8,14 +8,21 @@ on:
 
 jobs:
   test:
-    name: Run
+    name: Valid integration
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Test HACS Action  
-      continue-on-error: true
       uses: hacs/action@22.5.0
       with:
         category: integration
+        ignore: brands
     - name: Test Home Assistant hassfest
       uses: home-assistant/actions/hassfest@master
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+    - uses: pre-commit/action@v3.0.0
