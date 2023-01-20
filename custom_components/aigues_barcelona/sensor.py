@@ -14,10 +14,6 @@ from homeassistant.const import UnitOfVolume
 from homeassistant.core import callback
 from homeassistant.core import CoreState
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_platform
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType
-from homeassistant.helpers.typing import DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -37,8 +33,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     username = config_entry.data[CONF_USERNAME]
     password = config_entry.data[CONF_PASSWORD]
     contract = config_entry.data[CONF_CONTRACT]
-
-    platform = entity_platform.async_get_current_platform()
 
     coordinator = ContratoAgua(hass, username, password, contract, prev_data=None)
 

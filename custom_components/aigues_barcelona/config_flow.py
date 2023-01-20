@@ -7,13 +7,10 @@ from typing import Any
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant import core
 from homeassistant.const import CONF_PASSWORD
-from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.const import CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from .api import AiguesApiClient
 from .const import CONF_CONTRACT
@@ -25,7 +22,6 @@ ACCOUNT_CONFIG_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
-        # vol.Optional(CONF_SCAN_INTERVAL, default=const.DEFAULT_SCAN_PERIOD): cv.time_period_seconds
     }
 )
 
