@@ -6,6 +6,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
+    EVENT_HOMEASSISTANT_START,
     UnitOfVolume,
 )
 from homeassistant.helpers import entity_platform
@@ -25,32 +26,6 @@ import logging
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None
-) -> None:
-    """Set up the sensor platform."""
-
-    username = config[CONF_USERNAME]
-    password = config[CONF_PASSWORD]
-    contract = config[CONF_CONTRACT]
-    try:
-        client = AiguesApiClient(username, password, contract=contract)
-
-        _LOGGER.info("Attempting to login in setup_platform")
-        login = await hass.async_add_executor_job(client.login)
-        if not login:
-            _LOGGER.warning("Wrong username and/or password")
-            return
-
-    except Exception:
-        _LOGGER.warning("Unable to create Aigues Barcelona Client")
-        return
-
-    async_add_entities([ContadorAgua(client)])
-
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry,
@@ -58,6 +33,8 @@ async def async_setup_entry(
 ):
     """Set up entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    _LOGGER.info("calling async_setup_entry")
 
     username = config_entry.data[CONF_USERNAME]
     password = config_entry.data[CONF_PASSWORD]
@@ -84,11 +61,9 @@ async def async_setup_entry(
     else:
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_first_refresh)
 
+    _LOGGER.info("about to add entities")
     # add sensor entities
     async_add_entities([ContadorAgua(coordinator)])
-
-    # register websockets
-    async_register_websockets(hass)
 
     return True
 
@@ -102,7 +77,6 @@ class ContratoAgua(DataUpdateCoordinator):
         prev_data=None,
     ) -> None:
         """Initialize the data handler."""
-        self.hass = hass
         self.reset = prev_data is None
 
         self.contract = contract.upper()
@@ -112,35 +86,21 @@ class ContratoAgua(DataUpdateCoordinator):
         hass.data[DOMAIN][self.contract] = {}
 
         # the api object
-        #self._api = AiguesApiClientHelper(
-        #    username,
-        #    password,
-        #    contract,
-        #    data=prev_data,
-        #)
+        self._api = AiguesApiClient(
+            username,
+            password,
+            contract
+        )
 
-        # shared storage
-        # making self._data to reference hass.data[const.DOMAIN][self.id.upper()] so we can use it like an alias
-        #self._data = hass.data[DOMAIN][self.id.upper()]
-        #self._data.update(
-        #    {
-        #        const.DATA_STATE: const.STATE_LOADING,
-        #        const.DATA_ATTRIBUTES: {x: None for x in ATTRIBUTES},
-        #    }
-        #)
-
-        #if prev_data is not None:
-        #    self._load_data(preprocess=True)
-
-        #self.statistics = EdataStatistics(
-        #    self.hass, self.id, self._billing is not None, self.reset, self._datadis
-        #)
         super().__init__(
             hass,
             _LOGGER,
             name=self.id,
             update_interval=timedelta(minutes=240),
         )
+
+    async def _async_update_data(self):
+        return True
 
 
 class ContadorAgua(CoordinatorEntity, SensorEntity):
@@ -149,44 +109,24 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_name = coordinator.name
         self._data = coordinator.hass.data[DOMAIN][coordinator.id.upper()]
-        self._coordinator = coordinator
-        self._state = None
-
-    @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return 'Consumo de Agua'
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    @property
-    def icon(self) -> str:
-        return "mdi:water-pump"
+        self._attr_name = f"Contador {coordinator.name}"
+        self._attr_unique_id = coordinator.id
+        self._attr_icon = "mdi:water-pump"
+        self._attr_has_entity_name = True
+        self._attr_should_poll = False
+        #self._attr_state = None
+        self._attr_device_class = SensorDeviceClass.WATER
+        self._attr_native_unit_of_measurement = UnitOfVolume.CUBIC_METERS
+        self._attr_state_class = "total"
 
     @property
     def native_value(self):
         return self._data.get("state", -1)
-
-    @property
-    def device_class(self) -> str:
-        return SensorDeviceClass.WATER
-
-    @property
-    def state_class(self) -> str:
-        return "total"
-
-    @property
-    def unit_of_measurement(self) -> str:
-        return UnitOfVolume.CUBIC_METERS
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        self._state = 55 # TEST
+        self._attr_state = 55 # TEST
