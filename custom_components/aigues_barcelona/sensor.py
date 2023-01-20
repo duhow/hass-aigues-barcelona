@@ -6,6 +6,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
+    CONF_STATE,
     EVENT_HOMEASSISTANT_START,
     UnitOfVolume,
 )
@@ -22,6 +23,7 @@ from .const import (
 from .api import AiguesApiClient
 
 from datetime import timedelta
+from datetime import datetime
 import logging
 
 _LOGGER = logging.getLogger(__name__)
@@ -82,8 +84,12 @@ class ContratoAgua(DataUpdateCoordinator):
         self.contract = contract.upper()
         self.id = contract.lower()
 
-        # init data shared store
-        hass.data[DOMAIN][self.contract] = {}
+        if not hass.data[DOMAIN].get(self.contract):
+            # init data shared store
+            hass.data[DOMAIN][self.contract] = {}
+
+        # create alias
+        self._data = hass.data[DOMAIN][self.contract]
 
         # the api object
         self._api = AiguesApiClient(
@@ -100,8 +106,33 @@ class ContratoAgua(DataUpdateCoordinator):
         )
 
     async def _async_update_data(self):
-        return True
+        _LOGGER.info("Updating coordinator data")
+        TODAY = datetime.now()
 
+        previous = self._data.get(CONF_STATE, None)
+
+        if previous and (TODAY - previous) >= timedelta(minutes=60):
+            _LOGGER.warn("Skipping request update data - too early")
+            return
+
+        try:
+            await self.hass.async_add_executor_job(self._api.login)
+            consumptions = await self.hass.async_add_executor_job(self._api.consumptions, TODAY)
+        except Exception as msg:
+            _LOGGER.error("error while getting data: %s", msg)
+
+        if not consumptions:
+            _LOGGER.error("No consumptions available")
+            return False
+
+        self._data["consumptions"] = consumptions
+
+        # get last entry - most updated
+        metric = consumptions[-1]
+        self._data["value"] = metric["accumulatedConsumption"]
+        self._data[CONF_STATE] = metric["datetime"]
+
+        return True
 
 class ContadorAgua(CoordinatorEntity, SensorEntity):
     """Representation of a sensor."""
@@ -122,11 +153,4 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return self._data.get("state", -1)
-
-    def update(self) -> None:
-        """Fetch new state data for the sensor.
-
-        This is the only method that should fetch new data for Home Assistant.
-        """
-        self._attr_state = 55 # TEST
+        return self._data.get("value", -1)

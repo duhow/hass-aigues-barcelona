@@ -197,10 +197,10 @@ class AiguesApiClient:
         if frequency not in ["HOURLY", "DAILY"]:
             raise ValueError(f"Invalid {frequency=}")
 
-        if isinstance(date_from, datetime.date):
-            date_from = date_from.strftime("%d-%m-%Y")
         if date_to is None:
             date_to = date_from + datetime.timedelta(days=1)
+        if isinstance(date_from, datetime.date):
+            date_from = date_from.strftime("%d-%m-%Y")
         if isinstance(date_to, datetime.date):
             date_to = date_to.strftime("%d-%m-%Y")
 
