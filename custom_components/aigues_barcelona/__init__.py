@@ -1,24 +1,18 @@
-""" Integration for Aigues de Barcelona. """
-
+"""Integration for Aigues de Barcelona."""
 from __future__ import annotations
 
-import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    Platform,
-)
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.const import CONF_PASSWORD
+from homeassistant.const import CONF_USERNAME
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DOMAIN
 from .api import AiguesApiClient
+from .const import DOMAIN
 
 PLATFORMS = [Platform.SENSOR]
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
@@ -32,6 +26,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

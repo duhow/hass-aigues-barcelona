@@ -2,7 +2,7 @@
 
 Este `custom_component` permite importar los datos de [Aigües de Barcelona](https://www.aiguesdebarcelona.cat/) en [Home Assistant](https://www.home-assistant.io/).
 
-Puedes ver el 🚰 consumo de agua que has hecho directamente en Home Assistant, y con esa información también puedes crear tus propias automatizaciones y avisos :) 
+Puedes ver el 🚰 consumo de agua que has hecho directamente en Home Assistant, y con esa información también puedes crear tus propias automatizaciones y avisos :)
 
 Si te gusta el proyecto, dale a ⭐ **Star** ! 😊
 
@@ -30,7 +30,7 @@ Cuando lo tengas descargado, agrega la integración.
 
 No soy un experto en Home Assistant, hay conceptos que son nuevos para mí en cuanto a la parte Developer. Así que puede que tarde en implementar las nuevas requests.
 
-Se agradece cualquier Pull Request si tienes conocimiento en la materia :) 
+Se agradece cualquier Pull Request si tienes conocimiento en la materia :)
 
 Si encuentras algún error, puedes abrir un Issue.
 

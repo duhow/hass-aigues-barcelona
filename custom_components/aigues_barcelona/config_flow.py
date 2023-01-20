@@ -4,23 +4,17 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import voluptuous as vol
-from homeassistant import config_entries, core
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.const import (
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_SCAN_INTERVAL
-)
-from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
+from homeassistant import config_entries
+from homeassistant.const import CONF_PASSWORD
+from homeassistant.const import CONF_USERNAME
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.exceptions import HomeAssistantError
 
-from .const import (
-    DOMAIN,
-    CONF_CONTRACT
-)
 from .api import AiguesApiClient
+from .const import CONF_CONTRACT
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,11 +22,13 @@ ACCOUNT_CONFIG_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
-        #vol.Optional(CONF_SCAN_INTERVAL, default=const.DEFAULT_SCAN_PERIOD): cv.time_period_seconds
     }
 )
 
-async def validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+
+async def validate_credentials(
+    hass: HomeAssistant, data: dict[str, Any]
+) -> dict[str, Any]:
     username = data[CONF_USERNAME]
     password = data[CONF_PASSWORD]
 
@@ -57,13 +53,12 @@ async def validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> dic
     except Exception:
         return False
 
-class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
+class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(
-        self,
-        user_input: dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle configuration step from UI."""
         if user_input is None:
@@ -101,11 +96,14 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=ACCOUNT_CONFIG_SCHEMA, errors=errors
         )
 
+
 class AlreadyConfigured(HomeAssistantError):
     """Error to indicate integration is already configured."""
 
+
 class InvalidAuth(HomeAssistantError):
-    """Error to indicate credentials are invalid"""
+    """Error to indicate credentials are invalid."""
+
 
 class InvalidUsername(HomeAssistantError):
-    """Error to indicate invalid username"""
+    """Error to indicate invalid username."""
