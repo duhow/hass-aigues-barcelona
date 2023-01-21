@@ -89,6 +89,8 @@ class ContratoAgua(DataUpdateCoordinator):
     async def _async_update_data(self):
         _LOGGER.info("Updating coordinator data")
         TODAY = datetime.now()
+        YESTERDAY = TODAY - timedelta(days=1)
+        TOMORROW = TODAY + timedelta(days=1)
 
         try:
             previous = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
@@ -102,7 +104,7 @@ class ContratoAgua(DataUpdateCoordinator):
         try:
             await self.hass.async_add_executor_job(self._api.login)
             consumptions = await self.hass.async_add_executor_job(
-                self._api.consumptions, TODAY
+                self._api.consumptions, YESTERDAY, TOMORROW
             )
         except Exception as msg:
             _LOGGER.error("error while getting data: %s", msg)
