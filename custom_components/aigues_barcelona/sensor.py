@@ -6,6 +6,7 @@ from datetime import timedelta
 
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import CONF_PASSWORD
 from homeassistant.const import CONF_STATE
 from homeassistant.const import CONF_USERNAME
@@ -18,7 +19,9 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .api import AiguesApiClient
+from .const import ATTR_LAST_MEASURE
 from .const import CONF_CONTRACT
+from .const import CONF_VALUE
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -117,7 +120,7 @@ class ContratoAgua(DataUpdateCoordinator):
 
         # get last entry - most updated
         metric = consumptions[-1]
-        self._data["value"] = metric["accumulatedConsumption"]
+        self._data[CONF_VALUE] = metric["accumulatedConsumption"]
         self._data[CONF_STATE] = metric["datetime"]
 
         return True
@@ -135,11 +138,23 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
         self._attr_icon = "mdi:water-pump"
         self._attr_has_entity_name = True
         self._attr_should_poll = False
-        # self._attr_state = None
         self._attr_device_class = SensorDeviceClass.WATER
+        self._attr_state_class = SensorStateClass.TOTAL
         self._attr_native_unit_of_measurement = UnitOfVolume.CUBIC_METERS
-        self._attr_state_class = "total"
 
     @property
     def native_value(self):
-        return self._data.get("value", -1)
+        return self._data.get(CONF_VALUE, -1)
+
+    @property
+    def last_measurement(self):
+        try:
+            last_measure = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
+        except ValueError:
+            last_measure = None
+        return last_measure
+
+    @property
+    def extra_state_attributes(self):
+        attrs = {ATTR_LAST_MEASURE: self.last_measurement}
+        return attrs
