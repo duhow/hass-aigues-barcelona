@@ -90,7 +90,10 @@ class ContratoAgua(DataUpdateCoordinator):
         _LOGGER.info("Updating coordinator data")
         TODAY = datetime.now()
 
-        previous = self._data.get(CONF_STATE, None)
+        try:
+            previous = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
+        except ValueError:
+            previous = None
 
         if previous and (TODAY - previous) >= timedelta(minutes=60):
             _LOGGER.warn("Skipping request update data - too early")
