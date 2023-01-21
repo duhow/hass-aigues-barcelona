@@ -144,7 +144,7 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return self._data.get(CONF_VALUE, -1)
+        return self._data.get(CONF_VALUE, None)
 
     @property
     def last_measurement(self):
