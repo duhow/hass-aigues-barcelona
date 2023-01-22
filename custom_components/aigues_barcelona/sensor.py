@@ -102,7 +102,7 @@ class ContratoAgua(DataUpdateCoordinator):
         except ValueError:
             previous = None
 
-        if previous and (TODAY - previous) >= timedelta(minutes=60):
+        if previous and (TODAY - previous) <= timedelta(minutes=60):
             _LOGGER.warn("Skipping request update data - too early")
             return
 
