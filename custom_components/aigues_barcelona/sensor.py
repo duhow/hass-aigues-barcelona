@@ -97,6 +97,8 @@ class ContratoAgua(DataUpdateCoordinator):
 
         try:
             previous = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
+            # FIX: TypeError: can't subtract offset-naive and offset-aware datetimes
+            previous = previous.replace(tzinfo=None)
         except ValueError:
             previous = None
 
