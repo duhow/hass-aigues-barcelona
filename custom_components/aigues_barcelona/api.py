@@ -4,6 +4,8 @@ import json
 import logging
 
 import requests
+from const import API_COOKIE_TOKEN
+from const import API_HOST
 
 TIMEOUT = 60
 
@@ -17,7 +19,7 @@ class AiguesApiClient:
         if session is None:
             session = requests.Session()
         self.cli = session
-        self.api_host = "https://api.aiguesdebarcelona.cat"
+        self.api_host = f"https://{API_HOST}"
         # https://www.aiguesdebarcelona.cat/o/ofex-theme/js/chunk-vendors.e5935b72.js
         # https://www.aiguesdebarcelona.cat/o/ofex-theme/js/app.0499d168.js
         self.headers = {
@@ -36,7 +38,7 @@ class AiguesApiClient:
         return f"{self.api_host}/{path.lstrip('/')}{query_proc}"
 
     def _return_token_field(self, key):
-        token = self.cli.cookies.get_dict().get("ofexTokenJwt")
+        token = self.cli.cookies.get_dict().get(API_COOKIE_TOKEN)
         if not token:
             _LOGGER.warning("Token login missing")
             return False
@@ -115,6 +117,19 @@ class AiguesApiClient:
 
         # set as cookie: ofexTokenJwt
         # https://www.aiguesdebarcelona.cat/ca/area-clientes
+
+    def set_token(self, token: str):
+        host = ".".join(self.api_host.split(".")[1:])
+        cookie_data = {
+            "name": API_COOKIE_TOKEN,
+            "value": token,
+            "domain": f".{host}",
+            "path": "/",
+            "secure": True,
+            "rest": {"HttpOnly": True, "SameSite": "None"},
+        }
+        cookie = requests.cookies.create_cookie(**cookie_data)
+        return self.cli.cookies.set_cookie(cookie)
 
     def profile(self, user=None):
         if user is None:

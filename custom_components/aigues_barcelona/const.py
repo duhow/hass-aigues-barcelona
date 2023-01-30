@@ -7,4 +7,7 @@ CONF_VALUE = "value"
 
 ATTR_LAST_MEASURE = "Last measure"
 
-DEFAULT_SCAN_PERIOD = 3600
+DEFAULT_SCAN_PERIOD = 14400
+
+API_HOST = "api.aiguesdebarcelona.cat"
+API_COOKIE_TOKEN = "ofexTokenJwt"
