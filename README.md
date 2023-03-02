@@ -6,6 +6,14 @@ Puedes ver el 🚰 consumo de agua que has hecho directamente en Home Assistant,
 
 Si te gusta el proyecto, dale a ⭐ **Star** ! 😊
 
+## :warning: NOTA: Login desactivado (CAPTCHA)
+
+Última actualización: `2023-03-02`
+
+La API requiere comprobar la petición de login via CAPTCHA. Seguimiento del problema en [Issue #5].
+**Login does NOT work. NO funciona.**
+[Issue #5]: https://github.com/duhow/hass-aigues-barcelona/issues/5
+
 ## Estado: 🔧 BETA - Se buscan programadores
 
 Esta integración ahora mismo expone un `sensor` con el último valor disponible de la lectura de agua del día de hoy.
