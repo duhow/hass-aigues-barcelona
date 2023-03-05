@@ -16,12 +16,13 @@ PLATFORMS = [Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
-    api = AiguesApiClient(entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
+    # TODO Change after fixing Recaptcha.
+    #api = AiguesApiClient(entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
 
-    try:
-        await hass.async_add_executor_job(api.login)
-    except:
-        raise ConfigEntryNotReady
+    #try:
+    #    await hass.async_add_executor_job(api.login)
+    #except:
+    #    raise ConfigEntryNotReady
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

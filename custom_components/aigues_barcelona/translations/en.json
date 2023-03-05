@@ -15,6 +15,13 @@
           "password": "Password"
         },
         "title": "Setup integration"
+      },
+      "token": {
+        "data": {
+          "token": "OAuth Token"
+        },
+        "title": "Provide user OAuth Token",
+        "description": "Since Aigues de Barcelona uses Recaptcha, you'll need to provide the Token manually.\nPlease paste the token string here (starts with ey....)"
       }
     }
   }
