@@ -9,16 +9,16 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import CONF_PASSWORD
 from homeassistant.const import CONF_STATE
-from homeassistant.const import CONF_USERNAME
 from homeassistant.const import CONF_TOKEN
+from homeassistant.const import CONF_USERNAME
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 from homeassistant.const import UnitOfVolume
 from homeassistant.core import callback
 from homeassistant.core import CoreState
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .api import AiguesApiClient
 from .const import ATTR_LAST_MEASURE
@@ -40,7 +40,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     contract = config_entry.data[CONF_CONTRACT]
     token = config_entry.data.get(CONF_TOKEN)
 
-    coordinator = ContratoAgua(hass, username, password, contract, token=token, prev_data=None)
+    coordinator = ContratoAgua(
+        hass, username, password, contract, token=token, prev_data=None
+    )
 
     # postpone first refresh to speed up startup
     @callback
@@ -106,7 +108,6 @@ class ContratoAgua(DataUpdateCoordinator):
 
         return NOW >= expires
 
-
     async def _async_update_data(self):
         _LOGGER.info("Updating coordinator data")
         TODAY = datetime.now()
@@ -128,7 +129,7 @@ class ContratoAgua(DataUpdateCoordinator):
             if self.is_token_expired():
                 raise ConfigEntryAuthFailed
             # TODO: change once recaptcha is fiexd
-            #await self.hass.async_add_executor_job(self._api.login)
+            # await self.hass.async_add_executor_job(self._api.login)
             consumptions = await self.hass.async_add_executor_job(
                 self._api.consumptions, YESTERDAY, TOMORROW
             )

@@ -8,8 +8,8 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD
-from homeassistant.const import CONF_USERNAME
 from homeassistant.const import CONF_TOKEN
+from homeassistant.const import CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
@@ -77,7 +77,10 @@ async def validate_credentials(
 
     except Exception:
         _LOGGER.debug(f"Last data: {api.last_response}")
-        if api.last_response and api.last_response.get("path") == "recaptchaClientResponse":
+        if (
+            api.last_response
+            and api.last_response.get("path") == "recaptchaClientResponse"
+        ):
             raise RecaptchaAppeared
         return False
 
@@ -89,11 +92,9 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_token(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Return to user step with stored input (previous user creds)
-        and the current provided token."""
-        return await self.async_step_user(
-            {**self.stored_input, **user_input}
-        )
+        """Return to user step with stored input (previous user creds) and the
+        current provided token."""
+        return await self.async_step_user({**self.stored_input, **user_input})
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -120,12 +121,8 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "not_implemented"
         except RecaptchaAppeared:
             # Ask for OAuth Token to login.
-            TOKEN_SCHEMA = vol.Schema({
-                vol.Required(CONF_TOKEN): cv.string
-            })
-            return self.async_show_form(
-                step_id="token", data_schema=TOKEN_SCHEMA
-            )
+            TOKEN_SCHEMA = vol.Schema({vol.Required(CONF_TOKEN): cv.string})
+            return self.async_show_form(step_id="token", data_schema=TOKEN_SCHEMA)
         except InvalidUsername:
             errors["base"] = "invalid_auth"
         except InvalidAuth:
@@ -149,7 +146,8 @@ class AlreadyConfigured(HomeAssistantError):
 
 
 class RecaptchaAppeared(HomeAssistantError):
-    """Error to indicate a Recaptcha appeared and requires an OAuth token issued."""
+    """Error to indicate a Recaptcha appeared and requires an OAuth token
+    issued."""
 
 
 class InvalidAuth(HomeAssistantError):

@@ -2,13 +2,9 @@
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD
-from homeassistant.const import CONF_USERNAME
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
 
-from .api import AiguesApiClient
 from .const import DOMAIN
 
 PLATFORMS = [Platform.SENSOR]
@@ -17,11 +13,11 @@ PLATFORMS = [Platform.SENSOR]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # TODO Change after fixing Recaptcha.
-    #api = AiguesApiClient(entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
+    # api = AiguesApiClient(entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
 
-    #try:
+    # try:
     #    await hass.async_add_executor_job(api.login)
-    #except:
+    # except:
     #    raise ConfigEntryNotReady
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

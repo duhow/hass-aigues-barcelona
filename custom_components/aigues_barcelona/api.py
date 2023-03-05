@@ -4,6 +4,7 @@ import json
 import logging
 
 import requests
+
 from .const import API_COOKIE_TOKEN
 from .const import API_HOST
 
