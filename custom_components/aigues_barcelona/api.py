@@ -4,8 +4,9 @@ import json
 import logging
 
 import requests
-from const import API_COOKIE_TOKEN
-from const import API_HOST
+
+from .const import API_COOKIE_TOKEN
+from .const import API_HOST
 
 TIMEOUT = 60
 
@@ -30,6 +31,7 @@ class AiguesApiClient:
         self._username = username
         self._password = password
         self._contract = contract
+        self.last_response = None
 
     def _generate_url(self, path, query) -> str:
         query_proc = ""
@@ -64,8 +66,13 @@ class AiguesApiClient:
         )
         _LOGGER.debug(f"Query done with code {resp.status_code}")
         msg = resp.text
-        if len(msg) > 5 and msg.startswith("{"):
-            msg = resp.json().get("message", resp.text)
+        self.last_response = resp.text
+        if len(msg) > 5 and (msg.startswith("{") or msg.startswith("[")):
+            msg = resp.json()
+            if isinstance(msg, list) and len(msg) == 1:
+                msg = msg[0]
+            self.last_response = msg.copy()
+            msg = msg.get("message", resp.text)
 
         if resp.status_code == 500:
             raise Exception(f"Server error: {msg}")
@@ -130,6 +137,17 @@ class AiguesApiClient:
         }
         cookie = requests.cookies.create_cookie(**cookie_data)
         return self.cli.cookies.set_cookie(cookie)
+
+    def is_token_expired(self) -> bool:
+        """Check if Token in cookie has expired or not."""
+        expires = self._return_token_field("exp")
+        if not expires:
+            return True
+
+        expires = datetime.datetime.fromtimestamp(expires)
+        NOW = datetime.datetime.now()
+
+        return NOW >= expires
 
     def profile(self, user=None):
         if user is None:

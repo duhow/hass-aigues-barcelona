@@ -9,12 +9,14 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import CONF_PASSWORD
 from homeassistant.const import CONF_STATE
+from homeassistant.const import CONF_TOKEN
 from homeassistant.const import CONF_USERNAME
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 from homeassistant.const import UnitOfVolume
 from homeassistant.core import callback
 from homeassistant.core import CoreState
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -36,8 +38,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     username = config_entry.data[CONF_USERNAME]
     password = config_entry.data[CONF_PASSWORD]
     contract = config_entry.data[CONF_CONTRACT]
+    token = config_entry.data.get(CONF_TOKEN)
 
-    coordinator = ContratoAgua(hass, username, password, contract, prev_data=None)
+    coordinator = ContratoAgua(
+        hass, username, password, contract, token=token, prev_data=None
+    )
 
     # postpone first refresh to speed up startup
     @callback
@@ -64,6 +69,7 @@ class ContratoAgua(DataUpdateCoordinator):
         username: str,
         password: str,
         contract: str,
+        token: str = None,
         prev_data=None,
     ) -> None:
         """Initialize the data handler."""
@@ -81,6 +87,8 @@ class ContratoAgua(DataUpdateCoordinator):
 
         # the api object
         self._api = AiguesApiClient(username, password, contract)
+        if token:
+            self._api.set_token(token)
 
         super().__init__(
             hass,
@@ -92,7 +100,7 @@ class ContratoAgua(DataUpdateCoordinator):
     async def _async_update_data(self):
         _LOGGER.info("Updating coordinator data")
         TODAY = datetime.now()
-        YESTERDAY = TODAY - timedelta(days=1)
+        LAST_WEEK = TODAY - timedelta(days=7)
         TOMORROW = TODAY + timedelta(days=1)
 
         try:
@@ -107,10 +115,16 @@ class ContratoAgua(DataUpdateCoordinator):
             return
 
         try:
-            await self.hass.async_add_executor_job(self._api.login)
+            if self._api.is_token_expired():
+                raise ConfigEntryAuthFailed
+            # TODO: change once recaptcha is fiexd
+            # await self.hass.async_add_executor_job(self._api.login)
             consumptions = await self.hass.async_add_executor_job(
-                self._api.consumptions, YESTERDAY, TOMORROW
+                self._api.consumptions, LAST_WEEK, TOMORROW
             )
+        except ConfigEntryAuthFailed:
+            _LOGGER.error("Token has expired, cannot check consumptions.")
+            return False
         except Exception as msg:
             _LOGGER.error("error while getting data: %s", msg)
 
