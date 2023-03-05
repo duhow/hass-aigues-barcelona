@@ -25,6 +25,7 @@ ACCOUNT_CONFIG_SCHEMA = vol.Schema(
         vol.Required(CONF_PASSWORD): cv.string,
     }
 )
+TOKEN_SCHEMA = vol.Schema({vol.Required(CONF_TOKEN): cv.string})
 
 
 def check_valid_nif(username: str) -> bool:
@@ -96,6 +97,48 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         current provided token."""
         return await self.async_step_user({**self.stored_input, **user_input})
 
+    async def async_step_reauth(self, entry) -> FlowResult:
+        """Request OAuth Token again when expired."""
+        # get previous entity content back to flow
+        self.entry = entry
+        self.stored_input = entry.data
+        return await self.async_step_reauth_confirm(None)
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Return to user step with stored input (previous user creds) and the
+        current provided token."""
+        if not user_input:
+            return self.async_show_form(
+                step_id="reauth_confirm", data_schema=TOKEN_SCHEMA
+            )
+
+        errors = {}
+        user_input = {**self.stored_input, **user_input}
+        try:
+            info = await validate_credentials(self.hass, user_input)
+            contract = info[CONF_CONTRACT]
+            if contract != self.stored_input.get(CONF_CONTRACT):
+                _LOGGER.error("Reauth failed, contract does not match stored one")
+                raise InvalidAuth
+
+            self.hass.config_entries.async_update_entry(self.entry, data=user_input)
+            self.hass.async_create_task(
+                self.hass.config_entries.async_reload(self.entry.entry_id)
+            )
+
+            return self.async_abort(reason="reauth_successful")
+
+        except InvalidUsername:
+            errors["base"] = "invalid_auth"
+        except InvalidAuth:
+            errors["base"] = "invalid_auth"
+
+        return self.async_show_form(
+            step_id="reauth_confirm", data_schema=TOKEN_SCHEMA, errors=errors
+        )
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -121,7 +164,6 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "not_implemented"
         except RecaptchaAppeared:
             # Ask for OAuth Token to login.
-            TOKEN_SCHEMA = vol.Schema({vol.Required(CONF_TOKEN): cv.string})
             return self.async_show_form(step_id="token", data_schema=TOKEN_SCHEMA)
         except InvalidUsername:
             errors["base"] = "invalid_auth"

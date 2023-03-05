@@ -97,21 +97,10 @@ class ContratoAgua(DataUpdateCoordinator):
             update_interval=timedelta(minutes=240),
         )
 
-    def is_token_expired(self) -> bool:
-        """Check if Token in cookie has expired or not."""
-        expires = self._api._return_token_field("exp")
-        if not expires:
-            return True
-
-        expires = datetime.fromtimestamp(expires)
-        NOW = datetime.now()
-
-        return NOW >= expires
-
     async def _async_update_data(self):
         _LOGGER.info("Updating coordinator data")
         TODAY = datetime.now()
-        YESTERDAY = TODAY - timedelta(days=1)
+        LAST_WEEK = TODAY - timedelta(days=7)
         TOMORROW = TODAY + timedelta(days=1)
 
         try:
@@ -126,13 +115,16 @@ class ContratoAgua(DataUpdateCoordinator):
             return
 
         try:
-            if self.is_token_expired():
+            if self._api.is_token_expired():
                 raise ConfigEntryAuthFailed
             # TODO: change once recaptcha is fiexd
             # await self.hass.async_add_executor_job(self._api.login)
             consumptions = await self.hass.async_add_executor_job(
-                self._api.consumptions, YESTERDAY, TOMORROW
+                self._api.consumptions, LAST_WEEK, TOMORROW
             )
+        except ConfigEntryAuthFailed:
+            _LOGGER.error("Token has expired, cannot check consumptions.")
+            return False
         except Exception as msg:
             _LOGGER.error("error while getting data: %s", msg)
 

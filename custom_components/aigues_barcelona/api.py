@@ -138,6 +138,17 @@ class AiguesApiClient:
         cookie = requests.cookies.create_cookie(**cookie_data)
         return self.cli.cookies.set_cookie(cookie)
 
+    def is_token_expired(self) -> bool:
+        """Check if Token in cookie has expired or not."""
+        expires = self._return_token_field("exp")
+        if not expires:
+            return True
+
+        expires = datetime.datetime.fromtimestamp(expires)
+        NOW = datetime.datetime.now()
+
+        return NOW >= expires
+
     def profile(self, user=None):
         if user is None:
             user = self._return_token_field("name")

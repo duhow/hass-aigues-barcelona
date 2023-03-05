@@ -22,6 +22,13 @@
         },
         "title": "Provide user OAuth Token",
         "description": "Since Aigues de Barcelona uses Recaptcha, you'll need to provide the Token manually.\nPlease paste the token string here (starts with ey....)"
+      },
+      "reauth_confirm": {
+        "data": {
+          "token": "OAuth Token"
+        },
+        "title": "Relogin - Provide user OAuth Token",
+        "description": "Since Aigues de Barcelona uses Recaptcha, you'll need to provide the Token manually.\nPlease paste the token string here (starts with ey....)"
       }
     }
   }
