@@ -25,6 +25,25 @@ ACCOUNT_CONFIG_SCHEMA = vol.Schema(
     }
 )
 
+def check_valid_nif(username: str) -> bool:
+    """Quick check for NIF/DNI/NIE and return if valid."""
+
+    if len(username) != 9:
+        return False
+
+    # DNI 12341234D
+    if username[0:8].isnumeric() and not username[-1].isnumeric():
+        return True
+
+    # NIF X2341234H
+    if (
+        username[0].upper() in ['X', 'Y', 'Z'] and
+        username[1:8].isnumeric() and
+        not username[-1].isnumeric()
+    ):
+        return True
+
+    return False
 
 async def validate_credentials(
     hass: HomeAssistant, data: dict[str, Any]
@@ -32,8 +51,7 @@ async def validate_credentials(
     username = data[CONF_USERNAME]
     password = data[CONF_PASSWORD]
 
-    # QUICK check DNI/NIF. TODO improve
-    if len(username) != 9 or not username[0:8].isnumeric():
+    if not check_valid_nif(username):
         raise InvalidUsername
 
     try:
