@@ -1,17 +1,17 @@
 {
   "domain": "aigues_barcelona",
   "name": "Aigues de Barcelona",
-  "version": "0.0.1",
-  "config_flow": true,
-  "integration_type": "hub",
-  "documentation": "https://github.com/duhow/hass-aigues-barcelona/tree/master",
-  "issue_tracker": "https://github.com/duhow/hass-aigues-barcelona/issues",
-  "dependencies": [
-    "http"
-  ],
   "codeowners": [
     "@duhow"
   ],
+  "config_flow": true,
+  "dependencies": [
+    "http"
+  ],
+  "documentation": "https://github.com/duhow/hass-aigues-barcelona/tree/master",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/duhow/hass-aigues-barcelona/issues",
   "requirements": [],
-  "iot_class": "cloud_polling"
+  "version": "0.0.1"
 }
