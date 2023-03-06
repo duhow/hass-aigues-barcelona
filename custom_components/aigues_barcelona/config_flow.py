@@ -101,7 +101,13 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Request OAuth Token again when expired."""
         # get previous entity content back to flow
         self.entry = entry
-        self.stored_input = entry.data
+        if hasattr(entry, "data"):
+            self.stored_input = entry.data
+        else:
+            # FIXME: for DataUpdateCoordinator, entry is not valid,
+            # as it contains only sensor data. Missing entry_id.
+            # Reauth when restarting works.
+            self.stored_input = entry
         return await self.async_step_reauth_confirm(None)
 
     async def async_step_reauth_confirm(

@@ -122,9 +122,9 @@ class ContratoAgua(DataUpdateCoordinator):
             consumptions = await self.hass.async_add_executor_job(
                 self._api.consumptions, LAST_WEEK, TOMORROW
             )
-        except ConfigEntryAuthFailed:
+        except ConfigEntryAuthFailed as exp:
             _LOGGER.error("Token has expired, cannot check consumptions.")
-            return False
+            raise ConfigEntryAuthFailed from exp
         except Exception as msg:
             _LOGGER.error("error while getting data: %s", msg)
 
