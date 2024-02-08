@@ -24,6 +24,7 @@ from .api import AiguesApiClient
 from .const import ATTR_LAST_MEASURE
 from .const import CONF_CONTRACT
 from .const import CONF_VALUE
+from .const import DEFAULT_SCAN_PERIOD
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,27 +38,32 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
 
     username = config_entry.data[CONF_USERNAME]
     password = config_entry.data[CONF_PASSWORD]
-    contract = config_entry.data[CONF_CONTRACT]
+    contracts = config_entry.data[CONF_CONTRACT]
     token = config_entry.data.get(CONF_TOKEN)
 
-    coordinator = ContratoAgua(
-        hass, username, password, contract, token=token, prev_data=None
-    )
+    contadores = list()
 
-    # postpone first refresh to speed up startup
-    @callback
-    async def async_first_refresh(*args):
-        """Force the component to assess the first refresh."""
-        await coordinator.async_refresh()
+    for contract in contracts:
+        coordinator = ContratoAgua(
+            hass, username, password, contract, token=token, prev_data=None
+        )
 
-    if hass.state == CoreState.running:
-        await async_first_refresh()
-    else:
-        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_first_refresh)
+        # postpone first refresh to speed up startup
+        @callback
+        async def async_first_refresh(*args):
+            """Force the component to assess the first refresh."""
+            await coordinator.async_refresh()
+
+        if hass.state == CoreState.running:
+            await async_first_refresh()
+        else:
+            hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_first_refresh)
+
+        contadores.append(ContadorAgua(coordinator))
 
     _LOGGER.info("about to add entities")
     # add sensor entities
-    async_add_entities([ContadorAgua(coordinator)])
+    async_add_entities(contadores)
 
     return True
 
@@ -94,7 +100,7 @@ class ContratoAgua(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=self.id,
-            update_interval=timedelta(minutes=240),
+            update_interval=timedelta(seconds=DEFAULT_SCAN_PERIOD),
         )
 
     async def _async_update_data(self):
@@ -120,7 +126,7 @@ class ContratoAgua(DataUpdateCoordinator):
             # TODO: change once recaptcha is fiexd
             # await self.hass.async_add_executor_job(self._api.login)
             consumptions = await self.hass.async_add_executor_job(
-                self._api.consumptions, LAST_WEEK, TOMORROW
+                self._api.consumptions, LAST_WEEK, TOMORROW, self.contract
             )
         except ConfigEntryAuthFailed as exp:
             _LOGGER.error("Token has expired, cannot check consumptions.")

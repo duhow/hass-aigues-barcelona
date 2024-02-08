@@ -71,10 +71,8 @@ async def validate_credentials(
             _LOGGER.info("Login succeeded!")
         contracts = await hass.async_add_executor_job(api.contracts, username)
 
-        if len(contracts) > 1:
-            raise NotImplementedError("Multiple contracts are not supported")
-        # FIXME calling function instead of property due to async incompatibility
-        return {CONF_CONTRACT: contracts[0]["contractDetail"]["contractNumber"]}
+        available_contracts = [x["contractDetail"]["contractNumber"] for x in contracts]
+        return {CONF_CONTRACT: available_contracts}
 
     except Exception:
         _LOGGER.debug(f"Last data: {api.last_response}")
@@ -134,8 +132,8 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         user_input = {**self.stored_input, **user_input}
         try:
             info = await validate_credentials(self.hass, user_input)
-            contract = info[CONF_CONTRACT]
-            if contract != self.stored_input.get(CONF_CONTRACT):
+            contracts = info[CONF_CONTRACT]
+            if contracts != self.stored_input.get(CONF_CONTRACT):
                 _LOGGER.error("Reauth failed, contract does not match stored one")
                 raise InvalidAuth
 
@@ -172,9 +170,9 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.debug(f"Result is {info}")
             if not info:
                 raise InvalidAuth
-            contract = info[CONF_CONTRACT]
+            contracts = info[CONF_CONTRACT]
 
-            await self.async_set_unique_id(contract.lower())
+            await self.async_set_unique_id(user_input["username"])
             self._abort_if_unique_id_configured()
         except NotImplementedError:
             errors["base"] = "not_implemented"
@@ -193,10 +191,11 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except AlreadyConfigured:
             errors["base"] = "already_configured"
         else:
-            _LOGGER.debug(f"Creating entity with {user_input} and {contract=}")
+            _LOGGER.debug(f"Creating entity with {user_input} and {contracts=}")
+            nif_oculto = user_input[CONF_USERNAME][-3:][0:2]
 
             return self.async_create_entry(
-                title=f"Aigua {contract}", data={**user_input, **info}
+                title=f"Aigua ****{nif_oculto}", data={**user_input, **info}
             )
 
         return self.async_show_form(

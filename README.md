@@ -33,8 +33,8 @@ Cuando lo tengas descargado, agrega la integración.
 ## To-Do
 
 - [x] Sensor de último consumo disponible
+- [x] Soportar múltiples contratos
 - [ ] Publicar el consumo en [Energía](https://www.home-assistant.io/docs/energy/)
-- [ ] Soportar múltiples contratos **(?)**
 
 ## Ayuda
 
