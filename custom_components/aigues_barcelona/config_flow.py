@@ -14,6 +14,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
 from .api import AiguesApiClient
+from .const import API_ERROR_TOKEN_REVOKED
 from .const import CONF_CONTRACT
 from .const import DOMAIN
 
@@ -87,7 +88,7 @@ async def validate_credentials(
 
         if (
             isinstance(api.last_response, str)
-            and api.last_response == "JWT Token Revoked"
+            and api.last_response == API_ERROR_TOKEN_REVOKED
         ):
             raise TokenExpired
 
@@ -112,10 +113,15 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if hasattr(entry, "data"):
             self.stored_input = entry.data
         else:
-            # FIXME: for DataUpdateCoordinator, entry is not valid,
-            # as it contains only sensor data. Missing entry_id.
-            # Reauth when restarting works.
             self.stored_input = entry
+
+            # WHAT: for DataUpdateCoordinator, entry is not valid,
+            # as it contains only sensor data. Missing entry_id.
+            # This recovers the entry_id data.
+            if entry := self.hass.config_entries.async_get_entry(
+                self.context["entry_id"]
+            ):
+                self.entry = entry
         return await self.async_step_reauth_confirm(None)
 
     async def async_step_reauth_confirm(
@@ -123,15 +129,23 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Return to user step with stored input (previous user creds) and the
         current provided token."""
+
         if not user_input:
             return self.async_show_form(
                 step_id="reauth_confirm", data_schema=TOKEN_SCHEMA
             )
 
         errors = {}
+        _LOGGER.debug(
+            f"Current values on reauth_confirm: {self.entry} --> {user_input}"
+        )
         user_input = {**self.stored_input, **user_input}
         try:
             info = await validate_credentials(self.hass, user_input)
+            _LOGGER.debug(f"Result is {info}")
+            if not info:  # invalid oauth token
+                raise InvalidAuth
+
             contracts = info[CONF_CONTRACT]
             if contracts != self.stored_input.get(CONF_CONTRACT):
                 _LOGGER.error("Reauth failed, contract does not match stored one")

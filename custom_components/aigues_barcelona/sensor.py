@@ -21,6 +21,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .api import AiguesApiClient
+from .const import API_ERROR_TOKEN_REVOKED
 from .const import ATTR_LAST_MEASURE
 from .const import CONF_CONTRACT
 from .const import CONF_VALUE
@@ -104,7 +105,7 @@ class ContratoAgua(DataUpdateCoordinator):
         )
 
     async def _async_update_data(self):
-        _LOGGER.info("Updating coordinator data")
+        _LOGGER.info(f"Updating coordinator data for {self.contract}")
         TODAY = datetime.now()
         LAST_WEEK = TODAY - timedelta(days=7)
         TOMORROW = TODAY + timedelta(days=1)
@@ -120,6 +121,7 @@ class ContratoAgua(DataUpdateCoordinator):
             _LOGGER.warn("Skipping request update data - too early")
             return
 
+        consumptions = None
         try:
             if self._api.is_token_expired():
                 raise ConfigEntryAuthFailed
@@ -131,8 +133,10 @@ class ContratoAgua(DataUpdateCoordinator):
         except ConfigEntryAuthFailed as exp:
             _LOGGER.error("Token has expired, cannot check consumptions.")
             raise ConfigEntryAuthFailed from exp
-        except Exception as msg:
-            _LOGGER.error("error while getting data: %s", msg)
+        except Exception as exp:
+            _LOGGER.error("error while getting data: %s", exp)
+            if API_ERROR_TOKEN_REVOKED in str(exp):
+                raise ConfigEntryAuthFailed from exp
 
         if not consumptions:
             _LOGGER.error("No consumptions available")
