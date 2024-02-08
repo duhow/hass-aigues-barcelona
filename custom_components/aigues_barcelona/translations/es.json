@@ -1,0 +1,36 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Abort: Account is already configured",
+      "invalid_auth": "Invalid credentials"
+    },
+    "error": {
+      "already_configured": "Error: Account is already configured",
+      "invalid_auth": "Invalid credentials",
+      "token_expired": "El Token OAuth ha caducado, por favor genera uno nuevo"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "username": "Usuario (DNI)",
+          "password": "Contrase\u00f1a"
+        },
+        "title": "Configurar integraci\u00f3n"
+      },
+      "token": {
+        "data": {
+          "token": "OAuth Token"
+        },
+        "title": "Introduce el Token OAuth",
+        "description": "Debido a que Aigues de Barcelona utiliza Recaptcha para iniciar sesi\u00f3n, no se puede iniciar sesi\u00f3n autom\u00e1ticamente desde Home Assistant, as\u00ed que tienes que iniciar sesi\u00f3n desde la web, y proporcionar el token.\nCopia y pega el token aqu\u00ed (empieza por ey....)"
+      },
+      "reauth_confirm": {
+        "data": {
+          "token": "OAuth Token"
+        },
+        "title": "Relogin - Introduce el Token OAuth",
+        "description": "Debido a que Aigues de Barcelona utiliza Recaptcha para iniciar sesi\u00f3n, no se puede iniciar sesi\u00f3n autom\u00e1ticamente desde Home Assistant, as\u00ed que tienes que iniciar sesi\u00f3n desde la web, y proporcionar el token.\nCopia y pega el token aqu\u00ed (empieza por ey....)"
+      }
+    }
+  }
+}

@@ -6,7 +6,8 @@
     },
     "error": {
       "already_configured": "Error: Account is already configured",
-      "invalid_auth": "Invalid credentials"
+      "invalid_auth": "Invalid credentials",
+      "token_expired": "OAuth Token has expired, please issue a new one"
     },
     "step": {
       "user": {

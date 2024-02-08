@@ -78,11 +78,21 @@ async def validate_credentials(
 
     except Exception:
         _LOGGER.debug(f"Last data: {api.last_response}")
+        if not api.last_response:
+            return False
+
         if (
-            api.last_response
+            isinstance(api.last_response, dict)
             and api.last_response.get("path") == "recaptchaClientResponse"
         ):
             raise RecaptchaAppeared
+
+        if (
+            isinstance(api.last_response, str)
+            and api.last_response == "JWT Token Revoked"
+        ):
+            raise TokenExpired
+
         return False
 
 
@@ -168,6 +178,11 @@ class AiguesBarcelonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
         except NotImplementedError:
             errors["base"] = "not_implemented"
+        except TokenExpired:
+            errors["base"] = "token_expired"
+            return self.async_show_form(
+                step_id="token", data_schema=TOKEN_SCHEMA, errors=errors
+            )
         except RecaptchaAppeared:
             # Ask for OAuth Token to login.
             return self.async_show_form(step_id="token", data_schema=TOKEN_SCHEMA)
@@ -196,6 +211,10 @@ class AlreadyConfigured(HomeAssistantError):
 class RecaptchaAppeared(HomeAssistantError):
     """Error to indicate a Recaptcha appeared and requires an OAuth token
     issued."""
+
+
+class TokenExpired(HomeAssistantError):
+    """Error to indicate the OAuth token has expired."""
 
 
 class InvalidAuth(HomeAssistantError):
