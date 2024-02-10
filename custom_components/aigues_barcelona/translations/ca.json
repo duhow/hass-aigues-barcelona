@@ -1,0 +1,36 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Abort: El compte ja ha estat configurat",
+      "invalid_auth": "Credencials incorrectes"
+    },
+    "error": {
+      "already_configured": "Error: El compte ja ha estat configurat",
+      "invalid_auth": "Credencials incorrectes",
+      "token_expired": "El Token OAuth ha caducat, si us plau genera'n un de nou."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "username": "Usuari (DNI)",
+          "password": "Contrasenya"
+        },
+        "title": "Configurar integraci\u00f3"
+      },
+      "token": {
+        "data": {
+          "token": "OAuth Token"
+        },
+        "title": "Introdueix el Token OAuth",
+        "description": "Com que Aig\u00fces de Barcelona utilitza Recaptcha per a iniciar sessi\u00f3, no es pot iniciar sessi\u00f3 autom\u00e0ticament des de Home Assistant, aix\u00ed que has d'iniciar sessi\u00f3 des de la web, i proporcionar el token.\nCopia i enganxa el token aqu\u00ed (comen\u00e7a per ey....)"
+      },
+      "reauth_confirm": {
+        "data": {
+          "token": "OAuth Token"
+        },
+        "title": "Relogin - Introdueix el Token OAuth",
+        "description": "Com que Aig\u00fces de Barcelona utilitza Recaptcha per a iniciar sessi\u00f3, no es pot iniciar sessi\u00f3 autom\u00e0ticament des de Home Assistant, aix\u00ed que has d'iniciar sessi\u00f3 des de la web, i proporcionar el token.\nCopia i enganxa el token aqu\u00ed (comen\u00e7a per ey....)"
+      }
+    }
+  }
+}
