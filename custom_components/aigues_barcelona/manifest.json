@@ -6,12 +6,13 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "http"
+    "http",
+    "recorder"
   ],
   "documentation": "https://github.com/duhow/hass-aigues-barcelona/tree/master",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/duhow/hass-aigues-barcelona/issues",
   "requirements": [],
-  "version": "0.3.1"
+  "version": "0.3.2"
 }
