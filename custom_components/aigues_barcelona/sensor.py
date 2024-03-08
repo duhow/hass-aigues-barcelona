@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from datetime import timedelta
 
+from homeassistant.components.recorder.statistics import async_import_statistics
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.components.sensor import SensorStateClass
@@ -149,7 +150,31 @@ class ContratoAgua(DataUpdateCoordinator):
         self._data[CONF_VALUE] = metric["accumulatedConsumption"]
         self._data[CONF_STATE] = metric["datetime"]
 
+        await self._async_import_statistics(consumptions)
+
         return True
+
+    async def _async_import_statistics(self, consumptions) -> None:
+        stats = list()
+        for metric in consumptions:
+            start_ts = datetime.fromisoformat(metric["datetime"])
+            start_ts = start_ts.replace(minute=0, second=0, microsecond=0)  # required
+            stats.append(
+                {
+                    "start": start_ts,
+                    "state": metric["accumulatedConsumption"],
+                }
+            )
+        metadata = {
+            "has_mean": False,
+            "has_sum": False,
+            "name": None,
+            "source": "recorder",  # required
+            "statistic_id": f"sensor.contador_{self.id}",
+            "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
+        }
+        # _LOGGER.debug(f"Adding metric: {metadata} {stats}")
+        async_import_statistics(self.hass, metadata, stats)
 
 
 class ContadorAgua(CoordinatorEntity, SensorEntity):
