@@ -13,10 +13,12 @@ Inicio del problema: Anterior a `2023-01-23`
 
 La API requiere comprobar la petición de login via CAPTCHA.
 Se puede iniciar sesión pasando un Token OAuth manualmente.
-Busca la cookie `ofexTokenJwt` y copia el valor.
+Busca la 🍪 cookie `ofexTokenJwt` y copia el valor.
 El token dura 1h.
 
 Seguimiento del problema en https://github.com/duhow/hass-aigues-barcelona/issues/5 .
+
+## Uso
 
 Esta integración expone un `sensor` con el último valor disponible de la lectura de agua del día de hoy.
 La lectura que se muestra, puede estar demorada **hasta 4 días o más** (normalmente es 1-2 días).
@@ -33,12 +35,6 @@ La información se consulta **cada 4 horas** para no sobresaturar el servicio.
 
 [![Add Integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start?domain=aigues_barcelona)
 
-## To-Do
-
-- [x] Sensor de último consumo disponible
-- [x] Soportar múltiples contratos
-- [x] **BETA** Publicar el consumo en [Energía](https://www.home-assistant.io/docs/energy/)
-
 ## Ayuda
 
 No soy un experto en Home Assistant, hay conceptos que son nuevos para mí en cuanto a la parte Developer. Así que puede que tarde en implementar las nuevas requests.
@@ -46,3 +42,9 @@ No soy un experto en Home Assistant, hay conceptos que son nuevos para mí en cu
 Se agradece cualquier Pull Request si tienes conocimiento en la materia :)
 
 Si encuentras algún error, puedes abrir un Issue.
+
+## To-Do
+
+- [x] Sensor de último consumo disponible
+- [x] Soportar múltiples contratos
+- [x] **BETA** Publicar el consumo en [Energía](https://www.home-assistant.io/docs/energy/)
