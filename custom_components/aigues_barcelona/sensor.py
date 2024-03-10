@@ -189,16 +189,28 @@ class ContratoAgua(DataUpdateCoordinator):
             )
 
     async def _async_import_statistics(self, consumptions) -> None:
+        # force sort by datetime
+        consumptions = sorted(
+            consumptions, key=lambda x: datetime.fromisoformat(x["datetime"])
+        )
+
+        # TODO: Hay que cargar datos historicos para actualizar sum_total desde el primer registro.
+        # Conforme tengamos más datos para representar, aparecerá el fallo para depurar.
+
         stats = list()
+        sum_total = 0.0
         for metric in consumptions:
             start_ts = datetime.fromisoformat(metric["datetime"])
             start_ts = start_ts.replace(minute=0, second=0, microsecond=0)  # required
+            # round: fixes decimal with 20 digits precision
+            sum_total = round(sum_total + metric["deltaConsumption"], 4)
             stats.append(
                 {
                     "start": start_ts,
                     "state": metric["accumulatedConsumption"],
-                    # required to show in historic/recorder
-                    "sum": metric["deltaConsumption"],
+                    # -- required to show in historic/recorder
+                    "sum": sum_total,
+                    # "last_reset": start_ts,
                 }
             )
         metadata = {
@@ -226,7 +238,7 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
         self._attr_has_entity_name = True
         self._attr_should_poll = False
         self._attr_device_class = SensorDeviceClass.WATER
-        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_state_class = SensorStateClass.TOTAL
         self._attr_native_unit_of_measurement = UnitOfVolume.CUBIC_METERS
 
     @property
