@@ -23,13 +23,13 @@ La lectura que se muestra, puede estar demorada **hasta 4 días o más** (normal
 
 La información se consulta **cada 4 horas** para no sobresaturar el servicio.
 
-## Uso
+## Instalación
 
-Via [HACS](https://hacs.xyz/), busca e instala este componente personalizado.
+1. Via [HACS](https://hacs.xyz/), busca e instala este componente personalizado.
 
 [![Install repository](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=duhow&repository=hass-aigues-barcelona&category=integration)
 
-Cuando lo tengas descargado, agrega la integración en Home Assistant.
+2. Cuando lo tengas descargado, agrega la integración en Home Assistant.
 
 [![Add Integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start?domain=aigues_barcelona)
 
