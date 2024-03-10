@@ -4,6 +4,13 @@ import logging
 from datetime import datetime
 from datetime import timedelta
 
+import homeassistant.components.recorder.util as recorder_util
+from homeassistant.components.recorder.const import (
+    DATA_INSTANCE as RECORDER_DATA_INSTANCE,
+)
+from homeassistant.components.recorder.statistics import async_import_statistics
+from homeassistant.components.recorder.statistics import clear_statistics
+from homeassistant.components.recorder.statistics import list_statistic_ids
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.components.sensor import SensorStateClass
@@ -29,6 +36,14 @@ from .const import DEFAULT_SCAN_PERIOD
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def get_db_instance(hass):
+    """Workaround for older HA versions."""
+    try:
+        return recorder_util.get_instance(hass)
+    except AttributeError:
+        return hass
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities):
@@ -149,7 +164,65 @@ class ContratoAgua(DataUpdateCoordinator):
         self._data[CONF_VALUE] = metric["accumulatedConsumption"]
         self._data[CONF_STATE] = metric["datetime"]
 
+        # await self._clear_statistics()
+        await self._async_import_statistics(consumptions)
+
         return True
+
+    async def _clear_statistics(self) -> None:
+        all_ids = await get_db_instance(self.hass).async_add_executor_job(
+            list_statistic_ids, self.hass
+        )
+        to_clear = [
+            x["statistic_id"]
+            for x in all_ids
+            if x["statistic_id"].startswith(f"sensor.contador_{self.contract}")
+        ]
+
+        if to_clear:
+            _LOGGER.warn(
+                f"About to delete {len(to_clear)} entries from {self.contract}"
+            )
+            # NOTE: This does not seem to work?
+            await get_db_instance(self.hass).async_add_executor_job(
+                clear_statistics, self.hass.data[RECORDER_DATA_INSTANCE], to_clear
+            )
+
+    async def _async_import_statistics(self, consumptions) -> None:
+        # force sort by datetime
+        consumptions = sorted(
+            consumptions, key=lambda x: datetime.fromisoformat(x["datetime"])
+        )
+
+        # TODO: Hay que cargar datos historicos para actualizar sum_total desde el primer registro.
+        # Conforme tengamos más datos para representar, aparecerá el fallo para depurar.
+
+        stats = list()
+        sum_total = 0.0
+        for metric in consumptions:
+            start_ts = datetime.fromisoformat(metric["datetime"])
+            start_ts = start_ts.replace(minute=0, second=0, microsecond=0)  # required
+            # round: fixes decimal with 20 digits precision
+            sum_total = round(sum_total + metric["deltaConsumption"], 4)
+            stats.append(
+                {
+                    "start": start_ts,
+                    "state": metric["accumulatedConsumption"],
+                    # -- required to show in historic/recorder
+                    "sum": sum_total,
+                    # "last_reset": start_ts,
+                }
+            )
+        metadata = {
+            "has_mean": False,
+            "has_sum": True,
+            "name": None,
+            "source": "recorder",  # required
+            "statistic_id": f"sensor.contador_{self.contract}",
+            "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
+        }
+        # _LOGGER.debug(f"Adding metric: {metadata} {stats}")
+        async_import_statistics(self.hass, metadata, stats)
 
 
 class ContadorAgua(CoordinatorEntity, SensorEntity):
