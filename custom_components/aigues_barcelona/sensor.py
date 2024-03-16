@@ -236,7 +236,7 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_name = f"Contador {coordinator.name}"
+        self._attr_name = f"Contador {coordinator.id}"
         self._attr_unique_id = coordinator.id
         self._attr_icon = "mdi:water-pump"
         self._attr_has_entity_name = True
