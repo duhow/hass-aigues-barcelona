@@ -151,7 +151,7 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
             _LOGGER.error("Token has expired, cannot check consumptions.")
             raise ConfigEntryAuthFailed from exp
         except Exception as exp:
-            _LOGGER.error("error while getting data: %s", exp)
+            self.async_set_update_error(exp)
             if API_ERROR_TOKEN_REVOKED in str(exp):
                 raise ConfigEntryAuthFailed from exp
 
