@@ -25,7 +25,7 @@ from homeassistant.core import CoreState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
 from .api import AiguesApiClient
 from .const import API_ERROR_TOKEN_REVOKED
@@ -60,31 +60,29 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     contadores = list()
 
     for contract in contracts:
-        coordinator = ContratoAgua(
-            hass, username, password, contract, token=token, prev_data=None
-        )
-
-        # postpone first refresh to speed up startup
-        @callback
-        async def async_first_refresh(*args):
-            """Force the component to assess the first refresh."""
-            await coordinator.async_refresh()
-
-        if hass.state == CoreState.running:
-            await async_first_refresh()
-        else:
-            hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_first_refresh)
-
+        coordinator = ContratoAgua(hass, username, password, contract, token=token)
         contadores.append(ContadorAgua(coordinator))
 
+    # postpone first refresh to speed up startup
+    @callback
+    async def async_first_refresh(*args):
+        for sensor in contadores:
+            await sensor.coordinator.async_refresh()
+
+    # ------
+
+    if hass.state == CoreState.running:
+        await async_first_refresh()
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_first_refresh)
+
     _LOGGER.info("about to add entities")
-    # add sensor entities
     async_add_entities(contadores)
 
     return True
 
 
-class ContratoAgua(DataUpdateCoordinator):
+class ContratoAgua(TimestampDataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
@@ -99,6 +97,7 @@ class ContratoAgua(DataUpdateCoordinator):
 
         self.contract = contract.upper()
         self.id = contract.lower()
+        self.internal_sensor_id = f"sensor.contador_{self.id}"
 
         if not hass.data[DOMAIN].get(self.contract):
             # init data shared store
@@ -118,6 +117,9 @@ class ContratoAgua(DataUpdateCoordinator):
             name=self.id,
             update_interval=timedelta(seconds=DEFAULT_SCAN_PERIOD),
         )
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self.contract}>"
 
     async def _async_update_data(self):
         _LOGGER.info(f"Updating coordinator data for {self.contract}")
@@ -149,7 +151,7 @@ class ContratoAgua(DataUpdateCoordinator):
             _LOGGER.error("Token has expired, cannot check consumptions.")
             raise ConfigEntryAuthFailed from exp
         except Exception as exp:
-            _LOGGER.error("error while getting data: %s", exp)
+            self.async_set_update_error(exp)
             if API_ERROR_TOKEN_REVOKED in str(exp):
                 raise ConfigEntryAuthFailed from exp
 
@@ -165,7 +167,10 @@ class ContratoAgua(DataUpdateCoordinator):
         self._data[CONF_STATE] = metric["datetime"]
 
         # await self._clear_statistics()
-        await self._async_import_statistics(consumptions)
+        try:
+            await self._async_import_statistics(consumptions)
+        except:
+            pass
 
         return True
 
@@ -176,7 +181,7 @@ class ContratoAgua(DataUpdateCoordinator):
         to_clear = [
             x["statistic_id"]
             for x in all_ids
-            if x["statistic_id"].startswith(f"sensor.contador_{self.contract}")
+            if x["statistic_id"].startswith(self.internal_sensor_id)
         ]
 
         if to_clear:
@@ -218,7 +223,7 @@ class ContratoAgua(DataUpdateCoordinator):
             "has_sum": True,
             "name": None,
             "source": "recorder",  # required
-            "statistic_id": f"sensor.contador_{self.contract}",
+            "statistic_id": self.internal_sensor_id,
             "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
         }
         # _LOGGER.debug(f"Adding metric: {metadata} {stats}")
@@ -231,8 +236,7 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._data = coordinator.hass.data[DOMAIN][coordinator.id.upper()]
-        self._attr_name = f"Contador {coordinator.name}"
+        self._attr_name = f"Contador {coordinator.id}"
         self._attr_unique_id = coordinator.id
         self._attr_icon = "mdi:water-pump"
         self._attr_has_entity_name = True
@@ -243,12 +247,14 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return self._data.get(CONF_VALUE, None)
+        return self.coordinator._data.get(CONF_VALUE, None)
 
     @property
     def last_measurement(self):
         try:
-            last_measure = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
+            last_measure = datetime.fromisoformat(
+                self.coordinator._data.get(CONF_STATE, "")
+            )
         except ValueError:
             last_measure = None
         return last_measure
