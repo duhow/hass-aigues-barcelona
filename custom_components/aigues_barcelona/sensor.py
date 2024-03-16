@@ -63,22 +63,22 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
         coordinator = ContratoAgua(
             hass, username, password, contract, token=token, prev_data=None
         )
-
-        # postpone first refresh to speed up startup
-        @callback
-        async def async_first_refresh(*args):
-            """Force the component to assess the first refresh."""
-            await coordinator.async_refresh()
-
-        if hass.state == CoreState.running:
-            await async_first_refresh()
-        else:
-            hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_first_refresh)
-
         contadores.append(ContadorAgua(coordinator))
 
+    # postpone first refresh to speed up startup
+    @callback
+    async def async_first_refresh(*args):
+        for sensor in contadores:
+            await sensor.coordinator.async_refresh()
+
+    # ------
+
+    if hass.state == CoreState.running:
+        await async_first_refresh()
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_first_refresh)
+
     _LOGGER.info("about to add entities")
-    # add sensor entities
     async_add_entities(contadores)
 
     return True
