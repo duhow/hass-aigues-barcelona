@@ -60,9 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     contadores = list()
 
     for contract in contracts:
-        coordinator = ContratoAgua(
-            hass, username, password, contract, token=token, prev_data=None
-        )
+        coordinator = ContratoAgua(hass, username, password, contract, token=token)
         contadores.append(ContadorAgua(coordinator))
 
     # postpone first refresh to speed up startup
@@ -120,6 +118,9 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
             update_interval=timedelta(seconds=DEFAULT_SCAN_PERIOD),
         )
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self.contract}>"
+
     async def _async_update_data(self):
         _LOGGER.info(f"Updating coordinator data for {self.contract}")
         TODAY = datetime.now()
@@ -166,7 +167,10 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         self._data[CONF_STATE] = metric["datetime"]
 
         # await self._clear_statistics()
-        await self._async_import_statistics(consumptions)
+        try:
+            await self._async_import_statistics(consumptions)
+        except:
+            pass
 
         return True
 
@@ -232,7 +236,6 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._data = coordinator.hass.data[DOMAIN][coordinator.id.upper()]
         self._attr_name = f"Contador {coordinator.name}"
         self._attr_unique_id = coordinator.id
         self._attr_icon = "mdi:water-pump"
@@ -244,12 +247,14 @@ class ContadorAgua(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return self._data.get(CONF_VALUE, None)
+        return self.coordinator._data.get(CONF_VALUE, None)
 
     @property
     def last_measurement(self):
         try:
-            last_measure = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
+            last_measure = datetime.fromisoformat(
+                self.coordinator._data.get(CONF_STATE, "")
+            )
         except ValueError:
             last_measure = None
         return last_measure
