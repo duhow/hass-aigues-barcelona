@@ -99,6 +99,7 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
 
         self.contract = contract.upper()
         self.id = contract.lower()
+        self.internal_sensor_id = f"sensor.contador_{self.id}"
 
         if not hass.data[DOMAIN].get(self.contract):
             # init data shared store
@@ -176,7 +177,7 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         to_clear = [
             x["statistic_id"]
             for x in all_ids
-            if x["statistic_id"].startswith(f"sensor.contador_{self.contract}")
+            if x["statistic_id"].startswith(self.internal_sensor_id)
         ]
 
         if to_clear:
@@ -218,7 +219,7 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
             "has_sum": True,
             "name": None,
             "source": "recorder",  # required
-            "statistic_id": f"sensor.contador_{self.contract}",
+            "statistic_id": self.internal_sensor_id,
             "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
         }
         # _LOGGER.debug(f"Adding metric: {metadata} {stats}")
