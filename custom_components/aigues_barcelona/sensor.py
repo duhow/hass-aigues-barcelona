@@ -25,7 +25,7 @@ from homeassistant.core import CoreState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
 from .api import AiguesApiClient
 from .const import API_ERROR_TOKEN_REVOKED
@@ -84,7 +84,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     return True
 
 
-class ContratoAgua(DataUpdateCoordinator):
+class ContratoAgua(TimestampDataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
