@@ -5,9 +5,15 @@ from datetime import datetime
 from datetime import timedelta
 
 import homeassistant.components.recorder.util as recorder_util
-from homeassistant.components.recorder.const import (
-    DATA_INSTANCE as RECORDER_DATA_INSTANCE,
-)
+
+try:
+    from homeassistant.components.recorder.const import (
+        DATA_INSTANCE as RECORDER_DATA_INSTANCE,
+    )
+except ImportError:  # NEW Home Assistant 2024.08
+    from homeassistant.helpers.recorder import (
+        DATA_INSTANCE as RECORDER_DATA_INSTANCE,
+    )
 from homeassistant.components.recorder.statistics import async_import_statistics
 from homeassistant.components.recorder.statistics import clear_statistics
 from homeassistant.components.recorder.statistics import list_statistic_ids
