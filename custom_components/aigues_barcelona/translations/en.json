@@ -12,7 +12,7 @@
     "step": {
       "user": {
         "data": {
-          "username": "Username (DNI)",
+          "username": "Username (DNI/NIE)",
           "password": "Password"
         },
         "title": "Setup integration"

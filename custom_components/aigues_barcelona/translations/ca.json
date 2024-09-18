@@ -12,7 +12,7 @@
     "step": {
       "user": {
         "data": {
-          "username": "Usuari (DNI)",
+          "username": "Usuari (DNI/NIE)",
           "password": "Contrasenya"
         },
         "title": "Configurar integraci\u00f3"
