@@ -1,0 +1,8 @@
+# Service call documentation for Aigues de Barcelona integration
+
+reset_and_refresh_data:
+  description: "Reset all stored historic/metrics data and start getting metrics from 1 year ago, querying data weekly."
+  fields:
+    date_from:
+      description: "Optional date to start fetching metrics from (default is 1 year ago)."
+      example: "2022-01-01"
