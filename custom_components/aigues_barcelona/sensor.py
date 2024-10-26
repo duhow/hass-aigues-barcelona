@@ -258,17 +258,21 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
     async def clear_all_stored_data(self) -> None:
         await self._clear_statistics()
 
-    async def fetch_metrics_from_one_year_ago(self) -> None:
+    async def import_old_consumptions(self, days: int = 365) -> None:
         today = datetime.now()
-        one_year_ago = today - timedelta(days=365)
+        one_year_ago = today - timedelta(days=days)
 
         current_date = one_year_ago
         while current_date < today:
-            await self._async_import_statistics(
-                await self.hass.async_add_executor_job(
-                    self._api.consumptions_week, current_date, self.contract
-                )
+            consumptions = await self.hass.async_add_executor_job(
+                self._api.consumptions_week, current_date, self.contract
             )
+
+            if consumptions:
+                await self._async_import_statistics(consumptions)
+            else:
+                _LOGGER.warning(f"No data available for {current_date}")
+
             current_date += timedelta(weeks=1)
 
 
