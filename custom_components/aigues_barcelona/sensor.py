@@ -113,6 +113,9 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         # create alias
         self._data = hass.data[DOMAIN][self.contract]
 
+        # WARN define a pointer to this object
+        hass.data[DOMAIN][self.contract]["coordinator"] = self
+
         # the api object
         self._api = AiguesApiClient(username, password, contract)
         if token:
@@ -251,6 +254,26 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         }
         # _LOGGER.debug(f"Adding metric: {metadata} {stats}")
         async_import_statistics(self.hass, metadata, stats)
+
+    async def clear_all_stored_data(self) -> None:
+        await self._clear_statistics()
+
+    async def import_old_consumptions(self, days: int = 365) -> None:
+        today = datetime.now()
+        one_year_ago = today - timedelta(days=days)
+
+        current_date = one_year_ago
+        while current_date < today:
+            consumptions = await self.hass.async_add_executor_job(
+                self._api.consumptions_week, current_date, self.contract
+            )
+
+            if consumptions:
+                await self._async_import_statistics(consumptions)
+            else:
+                _LOGGER.warning(f"No data available for {current_date}")
+
+            current_date += timedelta(weeks=1)
 
 
 class ContadorAgua(CoordinatorEntity, SensorEntity):

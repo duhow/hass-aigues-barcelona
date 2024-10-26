@@ -13,6 +13,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .api import AiguesApiClient
 from .const import DOMAIN
+from .service import async_setup as setup_service
 
 # from homeassistant.exceptions import ConfigEntryNotReady
 
@@ -40,6 +41,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     #    raise ConfigEntryNotReady
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    await setup_service(hass, entry)
 
     return True
 

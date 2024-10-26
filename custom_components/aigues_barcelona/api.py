@@ -82,6 +82,8 @@ class AiguesApiClient:
             raise Exception(f"Denied: {msg}")
         if resp.status_code == 400:
             raise Exception(f"Bad response: {msg}")
+        if resp.status_code == 429:
+            raise Exception(f"Rate-Limited: {msg}")
 
         return resp
 
