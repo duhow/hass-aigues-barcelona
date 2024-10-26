@@ -205,16 +205,29 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
             consumptions, key=lambda x: datetime.fromisoformat(x["datetime"])
         )
 
-        # TODO: Hay que cargar datos historicos para actualizar sum_total desde el primer registro.
-        # Conforme tengamos más datos para representar, aparecerá el fallo para depurar.
+        # Retrieve the last stored value of accumulatedConsumption
+        last_stored_value = None
+        all_ids = await get_db_instance(self.hass).async_add_executor_job(
+            list_statistic_ids, self.hass
+        )
+        for stat_id in all_ids:
+            if stat_id["statistic_id"] == self.internal_sensor_id:
+                if stat_id["sum"] and (last_stored_value is None or stat_id["sum"] > last_stored_value):
+                    last_stored_value = stat_id["sum"]
 
         stats = list()
-        sum_total = 0.0
+        sum_total = last_stored_value or 0.0
         for metric in consumptions:
             start_ts = datetime.fromisoformat(metric["datetime"])
             start_ts = start_ts.replace(minute=0, second=0, microsecond=0)  # required
+            # Calculate deltaConsumption
+            deltaConsumption = metric["accumulatedConsumption"] - last_stored_value
+            # Ensure deltaConsumption is positive before adding to sum_total
+            if deltaConsumption < 0:
+                _LOGGER.warn(f"Negative deltaConsumption detected: {deltaConsumption}")
+                deltaConsumption = 0
             # round: fixes decimal with 20 digits precision
-            sum_total = round(sum_total + metric["deltaConsumption"], 4)
+            sum_total = round(sum_total + deltaConsumption, 4)
             stats.append(
                 {
                     "start": start_ts,
@@ -224,6 +237,7 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
                     # "last_reset": start_ts,
                 }
             )
+            last_stored_value = metric["accumulatedConsumption"]
         metadata = {
             "has_mean": False,
             "has_sum": True,
