@@ -4,7 +4,7 @@ default_install_hook_types:
 - commit-msg
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v5.0.0
   hooks:
   - id: trailing-whitespace
   - id: check-docstring-first
@@ -16,27 +16,23 @@ repos:
   - id: debug-statements
   - id: end-of-file-fixer
 - repo: https://github.com/myint/docformatter
-  rev: v1.5.1
+  rev: eb1df347edd128b30cd3368dddc3aa65edcfac38
   hooks:
   - id: docformatter
+    language: python
     args: [--in-place]
 - repo: https://github.com/asottile/pyupgrade
-  rev: v3.3.1
+  rev: v3.19.0
   hooks:
   - id: pyupgrade
     args: [--py38-plus]
-- repo: https://github.com/asottile/reorder_python_imports
-  rev: v3.9.0
-  hooks:
-  - id: reorder-python-imports
-    args: [--py38-plus]
 - repo: https://github.com/psf/black
-  rev: 22.12.0
+  rev: 24.10.0
   hooks:
   - id: black
     language_version: python3
 - repo: https://github.com/PyCQA/flake8
-  rev: 6.0.0
+  rev: 7.1.1
   hooks:
   - id: flake8
 - repo: https://github.com/pre-commit/pygrep-hooks
@@ -44,7 +40,7 @@ repos:
   hooks:
   - id: python-use-type-annotations
 - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
-  rev: 0.2.2
+  rev: 0.2.3
   hooks:
   - id: yamlfmt
     args: [--mapping, '2', --sequence, '2', --offset, '0']
