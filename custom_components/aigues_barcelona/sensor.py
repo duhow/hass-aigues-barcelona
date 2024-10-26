@@ -206,17 +206,19 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         )
 
         # Retrieve the last stored value of accumulatedConsumption
-        last_stored_value = None
+        last_stored_value = 0.0
         all_ids = await get_db_instance(self.hass).async_add_executor_job(
             list_statistic_ids, self.hass
         )
         for stat_id in all_ids:
             if stat_id["statistic_id"] == self.internal_sensor_id:
-                if stat_id["sum"] and (last_stored_value is None or stat_id["sum"] > last_stored_value):
+                if stat_id.get("sum") and (
+                    last_stored_value is None or stat_id["sum"] > last_stored_value
+                ):
                     last_stored_value = stat_id["sum"]
 
         stats = list()
-        sum_total = last_stored_value or 0.0
+        sum_total = last_stored_value
         for metric in consumptions:
             start_ts = datetime.fromisoformat(metric["datetime"])
             start_ts = start_ts.replace(minute=0, second=0, microsecond=0)  # required
