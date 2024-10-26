@@ -1,4 +1,5 @@
+---
 # Service call documentation for Aigues de Barcelona integration
 
 reset_and_refresh_data:
-  description: "WARNING! Reset all stored historic/metrics data and start getting metrics from 1 year ago, querying data weekly."
+  description: WARNING! Reset all stored historic/metrics data and start getting metrics from 1 year ago, querying data weekly.

@@ -112,7 +112,7 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
 
         # create alias
         self._data = hass.data[DOMAIN][self.contract]
-        
+
         # WARN define a pointer to this object
         hass.data[DOMAIN][self.contract]["coordinator"] = self
 
