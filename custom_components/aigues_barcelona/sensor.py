@@ -1,4 +1,5 @@
 """Platform for sensor integration."""
+
 # from __future__ import annotations
 import logging
 from datetime import datetime
@@ -212,7 +213,9 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         )
         for stat_id in all_ids:
             if stat_id["statistic_id"] == self.internal_sensor_id:
-                if stat_id["sum"] and (last_stored_value is None or stat_id["sum"] > last_stored_value):
+                if stat_id["sum"] and (
+                    last_stored_value is None or stat_id["sum"] > last_stored_value
+                ):
                     last_stored_value = stat_id["sum"]
 
         stats = list()
