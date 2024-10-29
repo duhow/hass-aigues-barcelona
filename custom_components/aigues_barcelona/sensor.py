@@ -135,7 +135,6 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         _LOGGER.info(f"Updating coordinator data for {self.contract}")
         TODAY = datetime.now()
         LAST_WEEK = TODAY - timedelta(days=7)
-        TOMORROW = TODAY + timedelta(days=1)
 
         try:
             previous = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
@@ -155,7 +154,7 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
             # TODO: change once recaptcha is fiexd
             # await self.hass.async_add_executor_job(self._api.login)
             consumptions = await self.hass.async_add_executor_job(
-                self._api.consumptions, LAST_WEEK, TOMORROW, self.contract
+                self._api.consumptions, LAST_WEEK, TODAY, self.contract
             )
         except ConfigEntryAuthFailed as exp:
             _LOGGER.error("Token has expired, cannot check consumptions.")
