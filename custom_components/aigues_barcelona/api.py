@@ -7,6 +7,7 @@ import requests
 
 from .const import API_COOKIE_TOKEN
 from .const import API_HOST
+from .version import VERSION
 
 TIMEOUT = 60
 
@@ -27,6 +28,7 @@ class AiguesApiClient:
             "Ocp-Apim-Subscription-Key": "3cca6060fee14bffa3450b19941bd954",
             "Ocp-Apim-Trace": "false",
             "Content-Type": "application/json; charset=UTF-8",
+            "User-Agent": f"hass-aigues-barcelona/{VERSION} (Home Assistant)",
         }
         self._username = username
         self._password = password
