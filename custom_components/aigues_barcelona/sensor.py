@@ -215,34 +215,26 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         )
         for stat_id in all_ids:
             if stat_id["statistic_id"] == self.internal_sensor_id:
-                if stat_id.get("sum") and (
-                    last_stored_value is None or stat_id["sum"] > last_stored_value
-                ):
+                if stat_id.get("sum") and stat_id["sum"] > last_stored_value:
                     last_stored_value = stat_id["sum"]
 
         stats = list()
-        sum_total = last_stored_value
         for metric in consumptions:
             start_ts = datetime.fromisoformat(metric["datetime"])
             start_ts = start_ts.replace(minute=0, second=0, microsecond=0)  # required
-            # Calculate deltaConsumption
-            deltaConsumption = metric["accumulatedConsumption"] - last_stored_value
-            # Ensure deltaConsumption is positive before adding to sum_total
-            if deltaConsumption < 0:
-                _LOGGER.warn(f"Negative deltaConsumption detected: {deltaConsumption}")
-                deltaConsumption = 0
+
             # round: fixes decimal with 20 digits precision
-            sum_total = round(sum_total + deltaConsumption, 4)
+            state = round(metric["accumulatedConsumption"], 4)
             stats.append(
                 {
                     "start": start_ts,
-                    "state": metric["accumulatedConsumption"],
+                    "state": state,
                     # -- required to show in historic/recorder
-                    "sum": sum_total,
+                    # -- incremental sum = current total value, so we don't show negative values in HA
+                    "sum": state,
                     # "last_reset": start_ts,
                 }
             )
-            last_stored_value = metric["accumulatedConsumption"]
         metadata = {
             "has_mean": False,
             "has_sum": True,
