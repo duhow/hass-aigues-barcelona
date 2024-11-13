@@ -202,21 +202,27 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
                 clear_statistics, self.hass.data[RECORDER_DATA_INSTANCE], to_clear
             )
 
+    async def get_last_measurement_stored(self):
+        last_stored_value = 0.0
+        last_stored_date = None
+
+        all_ids = await get_db_instance(self.hass).async_add_executor_job(
+            list_statistic_ids, self.hass
+        )
+
+        for stat_id in all_ids:
+            if stat_id["statistic_id"] == self.internal_sensor_id:
+                if stat_id.get("sum") and stat_id["sum"] > last_stored_value:
+                    last_stored_value = stat_id["sum"]
+                    last_stored_date = stat_id["start"]
+
+        return last_stored_date
+
     async def _async_import_statistics(self, consumptions) -> None:
         # force sort by datetime
         consumptions = sorted(
             consumptions, key=lambda x: datetime.fromisoformat(x["datetime"])
         )
-
-        # Retrieve the last stored value of accumulatedConsumption
-        last_stored_value = 0.0
-        all_ids = await get_db_instance(self.hass).async_add_executor_job(
-            list_statistic_ids, self.hass
-        )
-        for stat_id in all_ids:
-            if stat_id["statistic_id"] == self.internal_sensor_id:
-                if stat_id.get("sum") and stat_id["sum"] > last_stored_value:
-                    last_stored_value = stat_id["sum"]
 
         stats = list()
         for metric in consumptions:
