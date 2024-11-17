@@ -42,6 +42,8 @@ from .const import CONF_VALUE
 from .const import DEFAULT_SCAN_PERIOD
 from .const import DOMAIN
 
+from typing import Optional
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -135,16 +137,21 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         _LOGGER.info(f"Updating coordinator data for {self.contract}")
         TODAY = datetime.now()
         LAST_WEEK = TODAY - timedelta(days=7)
+        LAST_TIME_DAYS = None
+
+        #last_measurement = await self.get_last_measurement_stored()
+        #_LOGGER.info("Last stored measurement: %s", last_measurement)
 
         try:
             previous = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
             # FIX: TypeError: can't subtract offset-naive and offset-aware datetimes
             previous = previous.replace(tzinfo=None)
+            LAST_TIME_DAYS = (TODAY - previous).days
         except ValueError:
             previous = None
 
         if previous and (TODAY - previous) <= timedelta(minutes=60):
-            _LOGGER.warn("Skipping request update data - too early")
+            _LOGGER.warning("Skipping request update data - too early")
             return
 
         consumptions = None
@@ -181,6 +188,9 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         except:
             pass
 
+        if LAST_TIME_DAYS >= 7:
+            await self.import_old_consumptions(days=LAST_TIME_DAYS)
+
         return True
 
     async def _clear_statistics(self) -> None:
@@ -202,9 +212,8 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
                 clear_statistics, self.hass.data[RECORDER_DATA_INSTANCE], to_clear
             )
 
-    async def get_last_measurement_stored(self):
-        last_stored_value = 0.0
-        last_stored_date = None
+    async def get_last_measurement_stored(self) -> Optional[datetime]:
+        last_stored = None
 
         all_ids = await get_db_instance(self.hass).async_add_executor_job(
             list_statistic_ids, self.hass
@@ -212,11 +221,14 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
 
         for stat_id in all_ids:
             if stat_id["statistic_id"] == self.internal_sensor_id:
-                if stat_id.get("sum") and stat_id["sum"] > last_stored_value:
-                    last_stored_value = stat_id["sum"]
-                    last_stored_date = stat_id["start"]
+                if stat_id.get("sum") and stat_id["sum"] > last_stored["sum"]:
+                    last_stored = stat_id
 
-        return last_stored_date
+        if last_stored:
+            _LOGGER.debug(f"Found last stored value: {last_stored}")
+            return datetime.fromtimestamp(last_stored.get("start_ts"))
+
+        return None
 
     async def _async_import_statistics(self, consumptions) -> None:
         # force sort by datetime
@@ -258,6 +270,9 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
     async def import_old_consumptions(self, days: int = 365) -> None:
         today = datetime.now()
         one_year_ago = today - timedelta(days=days)
+
+        if self._api.is_token_expired():
+            raise ConfigEntryAuthFailed
 
         current_date = one_year_ago
         while current_date < today:
