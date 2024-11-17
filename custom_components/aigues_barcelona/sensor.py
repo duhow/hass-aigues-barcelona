@@ -139,8 +139,8 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         LAST_WEEK = TODAY - timedelta(days=7)
         LAST_TIME_DAYS = None
 
-        #last_measurement = await self.get_last_measurement_stored()
-        #_LOGGER.info("Last stored measurement: %s", last_measurement)
+        # last_measurement = await self.get_last_measurement_stored()
+        # _LOGGER.info("Last stored measurement: %s", last_measurement)
 
         try:
             previous = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
