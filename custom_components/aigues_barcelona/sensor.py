@@ -42,6 +42,8 @@ from .const import CONF_VALUE
 from .const import DEFAULT_SCAN_PERIOD
 from .const import DOMAIN
 
+from typing import Optional
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -135,16 +137,21 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         _LOGGER.info(f"Updating coordinator data for {self.contract}")
         TODAY = datetime.now()
         LAST_WEEK = TODAY - timedelta(days=7)
+        LAST_TIME_DAYS = None
+
+        # last_measurement = await self.get_last_measurement_stored()
+        # _LOGGER.info("Last stored measurement: %s", last_measurement)
 
         try:
             previous = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
             # FIX: TypeError: can't subtract offset-naive and offset-aware datetimes
             previous = previous.replace(tzinfo=None)
+            LAST_TIME_DAYS = (TODAY - previous).days
         except ValueError:
             previous = None
 
         if previous and (TODAY - previous) <= timedelta(minutes=60):
-            _LOGGER.warn("Skipping request update data - too early")
+            _LOGGER.warning("Skipping request update data - too early")
             return
 
         consumptions = None
@@ -181,6 +188,9 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         except:
             pass
 
+        if LAST_TIME_DAYS >= 7:
+            await self.import_old_consumptions(days=LAST_TIME_DAYS)
+
         return True
 
     async def _clear_statistics(self) -> None:
@@ -202,47 +212,47 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
                 clear_statistics, self.hass.data[RECORDER_DATA_INSTANCE], to_clear
             )
 
+    async def get_last_measurement_stored(self) -> Optional[datetime]:
+        last_stored = None
+
+        all_ids = await get_db_instance(self.hass).async_add_executor_job(
+            list_statistic_ids, self.hass
+        )
+
+        for stat_id in all_ids:
+            if stat_id["statistic_id"] == self.internal_sensor_id:
+                if stat_id.get("sum") and stat_id["sum"] > last_stored["sum"]:
+                    last_stored = stat_id
+
+        if last_stored:
+            _LOGGER.debug(f"Found last stored value: {last_stored}")
+            return datetime.fromtimestamp(last_stored.get("start_ts"))
+
+        return None
+
     async def _async_import_statistics(self, consumptions) -> None:
         # force sort by datetime
         consumptions = sorted(
             consumptions, key=lambda x: datetime.fromisoformat(x["datetime"])
         )
 
-        # Retrieve the last stored value of accumulatedConsumption
-        last_stored_value = 0.0
-        all_ids = await get_db_instance(self.hass).async_add_executor_job(
-            list_statistic_ids, self.hass
-        )
-        for stat_id in all_ids:
-            if stat_id["statistic_id"] == self.internal_sensor_id:
-                if stat_id.get("sum") and (
-                    last_stored_value is None or stat_id["sum"] > last_stored_value
-                ):
-                    last_stored_value = stat_id["sum"]
-
         stats = list()
-        sum_total = last_stored_value
         for metric in consumptions:
             start_ts = datetime.fromisoformat(metric["datetime"])
             start_ts = start_ts.replace(minute=0, second=0, microsecond=0)  # required
-            # Calculate deltaConsumption
-            deltaConsumption = metric["accumulatedConsumption"] - last_stored_value
-            # Ensure deltaConsumption is positive before adding to sum_total
-            if deltaConsumption < 0:
-                _LOGGER.warn(f"Negative deltaConsumption detected: {deltaConsumption}")
-                deltaConsumption = 0
+
             # round: fixes decimal with 20 digits precision
-            sum_total = round(sum_total + deltaConsumption, 4)
+            state = round(metric["accumulatedConsumption"], 4)
             stats.append(
                 {
                     "start": start_ts,
-                    "state": metric["accumulatedConsumption"],
+                    "state": state,
                     # -- required to show in historic/recorder
-                    "sum": sum_total,
+                    # -- incremental sum = current total value, so we don't show negative values in HA
+                    "sum": state,
                     # "last_reset": start_ts,
                 }
             )
-            last_stored_value = metric["accumulatedConsumption"]
         metadata = {
             "has_mean": False,
             "has_sum": True,
@@ -260,6 +270,9 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
     async def import_old_consumptions(self, days: int = 365) -> None:
         today = datetime.now()
         one_year_ago = today - timedelta(days=days)
+
+        if self._api.is_token_expired():
+            raise ConfigEntryAuthFailed
 
         current_date = one_year_ago
         while current_date < today:
