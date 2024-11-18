@@ -146,7 +146,8 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
             previous = datetime.fromisoformat(self._data.get(CONF_STATE, ""))
             # FIX: TypeError: can't subtract offset-naive and offset-aware datetimes
             previous = previous.replace(tzinfo=None)
-            LAST_TIME_DAYS = (TODAY - previous).days
+            if previous:
+                LAST_TIME_DAYS = (TODAY - previous).days
         except ValueError:
             previous = None
 
@@ -188,7 +189,7 @@ class ContratoAgua(TimestampDataUpdateCoordinator):
         except:
             pass
 
-        if LAST_TIME_DAYS >= 7:
+        if LAST_TIME_DAYS and LAST_TIME_DAYS >= 7:
             await self.import_old_consumptions(days=LAST_TIME_DAYS)
 
         return True
